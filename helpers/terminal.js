@@ -2,8 +2,10 @@ const path = require('path');
 const termkit = require('terminal-kit');
 
 class Terminal {
-    constructor() {
+    constructor(_config, mainFunc) {
         let self = this;
+
+        this.mainFunc = mainFunc;
 
         this.term = termkit.terminal;
         this.term.fullscreen(true);
@@ -20,7 +22,7 @@ class Terminal {
             }
             else if (key === 'CTRL_R') {
                 self.clear();
-                self.showMainMenuPrompt();
+                self.mainFunc();
             }
         });
         this.term.stdout.on('resize', () => {

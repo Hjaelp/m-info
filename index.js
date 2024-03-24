@@ -4,7 +4,7 @@ const Terminal = require('./helpers/terminal.js');
 const Archive = require('./helpers/archive.js');
 const Manga = require('./helpers/manga.js');
 
-const terminal = new Terminal(config);
+const terminal = new Terminal(config, start);
 const archive = new Archive(config);
 const manga = new Manga(config);
 
