@@ -32,10 +32,6 @@ class Terminal {
             if (self.activeEl && self.document) {
                 self.setFocus();
             }
-            /*for (let progressBar of Object.values(self.progressBars)) {
-                progressBar.el.width = self.term.width-1;
-                progressBar.el.y = self.term.height + progressBar.el.y;
-            }*/
         });
     }
 

@@ -54,8 +54,6 @@ class Manga {
             if (resp.id) mIds[provider] = resp.id;
             
             progressBar.progress();
-
-            await sleep(1000);
         }
 
         if (!Object.keys(mInfo).length) {

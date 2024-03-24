@@ -85,7 +85,7 @@ async function updateBooks(dir, previewMode = false){
 
         mainProgressBar.progress();
 
-        await sleep(5000);
+        await sleep(1000);
 
         terminal.appendTextBox(`^G[Info]^ Found Series ${mangaInfo['ComicInfo'].title || series.seriesName}. Searching chapters...`)
 
@@ -144,7 +144,7 @@ async function updateBooks(dir, previewMode = false){
 
         mainProgressBar.progress();
 
-        await sleep(5000);
+        await sleep(1000);
 
         let coverProgressBar = terminal.createProgressBar({
             title: "Saving Covers...",
@@ -171,7 +171,6 @@ async function updateBooks(dir, previewMode = false){
                                               .map((vol) => `Saving Cover Art for Volume #${vol}`)
                                  );
                 }
-                terminal.appendTextBox(JSON.stringify(chaptersInfo));
             
                 coverProgressBar.setTasks(coverTasks);
             
