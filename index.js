@@ -95,18 +95,24 @@ async function updateBooks(dir, previewMode = false){
             pos: { x: 0, y: 1 }
         }); 
 
+        let saveTasks = [];
+        if (config.CREATE_SERIES_JSON) {
+            saveTasks.push("Saving series.json...");
+        }
+
         let chaptersInfo = await manga.getChapters(mangaInfo.id, chapterProgressBar);
         if (!chaptersInfo) {
             terminal.appendTextBox(`^Y[Warn]^ Could not find any chapter results for ${series.seriesName}. Skipping.`);
-            chapterProgressBar.setTasks([]);
-            chapterProgressBar.progress();
+            chapterProgressBar.setTasks(saveTasks);
         }
         else {
             terminal.appendTextBox(`^G[Info]^ Found ${Object.keys(chaptersInfo).length} chapters for ${mangaInfo['ComicInfo'].title || series.seriesName}.`);
 
             mainProgressBar.progress();
 
-            chapterProgressBar.setTasks(Object.keys(chaptersInfo).map((ch) => `Saving metadata for Chapter ${ch}.`));
+            Object.keys(chaptersInfo).map((ch) => `Saving metadata for Chapter ${ch}.`);
+
+            chapterProgressBar.setTasks(saveTasks);
 
             for (let [chapter, chMetadata] of Object.entries(chaptersInfo)) {
                 let chapterPath = series['archives'][chapter]?.path;
@@ -126,8 +132,16 @@ async function updateBooks(dir, previewMode = false){
                 await archive.saveComicMetadata(fullMetadata, series['archives'][chapter].path);
                 chapterProgressBar.progress();
             }
+            
             terminal.appendTextBox(`^G[Info]^ Done updating chapter metadata for ${series.seriesName}.`);
         }
+
+        if (config.CREATE_SERIES_JSON) {
+            await archive.saveSeriesJSON(mangaInfo['SeriesInfo'], series.path);
+            chapterProgressBar.progress();
+            terminal.appendTextBox(`^G[Info]^ Done saving series.json file for ${series.seriesName}.`);
+        }
+
         mainProgressBar.progress();
 
         await sleep(5000);

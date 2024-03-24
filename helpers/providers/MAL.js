@@ -25,10 +25,11 @@ class MAL {
         }).filter((prop) => !!prop);
 
         let relevant = Object.values(titles).join(' ').toLowerCase().includes(seriesName.toLowerCase());
-        if (!relevant) return false; // Jikan's Search API doesn't work well. 
+        //if (!relevant) return false; // Jikan's Search API doesn't work well. 
 
         let id = response.mal_id;
-        let chapterCount = response.chapters||1;
+        let chapterCount = response.chapters || 1;
+        let volumeCount = response.volumes && parseInt(response.volumes);
         let seriesTitle = Object.assign({}, ...titles);
         let description = response.synopsis;
         let isManga = 'YesAndRightToLeft';
@@ -42,17 +43,40 @@ class MAL {
         let contentRating = this.getAgeRating(genre);
         let author = response.authors.map((prop) => prop.name).join(', ') || '';
         //let artist = response.artists.map((prop) => prop.name).join(', ') || '';
+        let status = ["Finished", "Discontinued"].includes(response.status) ? "Ended" : "Continuing";
 
+        let publishedYear = null;
+        let publicationFrom = response.published?.from;
+        let publicationTo = response.published?.to;
+        if (response.published?.from){
+            publicationFrom = new Date(response.published?.from);
+            publishedYear = publicationFrom.getFullYear();
+            publicationFrom = publicationFrom.toLocaleDateString("en-US", { month: 'long' }) + 
+                              " " + 
+                              publicationFrom.toLocaleDateString("en-US", { year: 'numeric' });
+        }
+
+        if (response.published?.to) {
+            publicationTo = new Date(response.published?.to);
+            publicationTo = publicationTo.toLocaleDateString("en-US", { month: 'long' }) + 
+                            " " + 
+                            publicationTo.toLocaleDateString("en-US", { year: 'numeric' });
+        }
+        let publicationRun = (publicationFrom || "?") + " - " + (publicationTo || "Present");
 
         return {
             "id": id,
-            "Count": chapterCount,
+            "Chapters": chapterCount,
+            "Volumes": volumeCount,
             "Series": seriesTitle,
             "Summary": description,
             "Genre": genre,
             "AgeRating": contentRating,
             "Author": author,
             //"Artist": artist,
+            "Status": status,
+            "PublicationRun": publicationRun,
+            "PublishedYear": publishedYear,
             "Manga": isManga
         }
     }

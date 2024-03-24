@@ -36,10 +36,15 @@ class MangaUpdates {
         let contentRating = this.getAgeRating(genre);
         let author = response.authors.find(rel => rel.type === 'Author')?.name;
         let artist = response.authors.find(rel => rel.type === 'Artist')?.name;
+        let publisher = response.publishers.sort((a, b) => {
+            return b.type === "Original"
+        })[0]?.["publisher_name"];
+        let status = !!response.completed ? "Ended" : "Continuing";
+        let publishedYear = response.year;
 
         return {
             "id": seriesID,
-            "Count": chapterCount,
+            "Chapters": chapterCount,
             "Series": seriesTitle,
             "Summary": description,
             "Genre": genre,
@@ -47,6 +52,9 @@ class MangaUpdates {
             "AgeRating": contentRating,
             "Author": author,
             "Artist": artist,
+            "Publisher": publisher,
+            "Status": status,
+            "PublishedYear": publishedYear,
             "Manga": isManga
         }
     }

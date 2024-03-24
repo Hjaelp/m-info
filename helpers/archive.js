@@ -146,6 +146,11 @@ class Archive {
         else return await fs.promises.writeFile(path, xml);
     }
 
+    async saveSeriesJSON(obj, dir) {
+        let filename = path.join(dir, "series.json");
+        return await fs.promises.writeFile(filename, JSON.stringify(obj));
+    }
+
     async saveComicCover(imageFilename, imageStream, coverPath, destFilename) {
         destFilename = path.parse(destFilename).name
         const coverExt = path.extname(imageFilename).toLowerCase();

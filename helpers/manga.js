@@ -82,21 +82,51 @@ class Manga {
         let tags = this.config['METADATA_AGGREGATE'] ? this.aggregateField(mInfo, 'Tags')
                                                      : this.getPreferredData(mInfo, 'Tags');
 
+        let ageRating = this.getPreferredData(mInfo, 'AgeRating');
+
         res = {
             "id": mIds,
             "Count": chapterCount,
             "ComicInfo": {
                 "Series": this.getPreferredData(mInfo, 'Series'),
-                "Count": chapterCount,
+                "Count": this.getPreferredData(mInfo, 'Chapters'),
                 "AlternateSeries": this.getPreferredData(mInfo, 'Series', 1),
                 "Summary": this.getPreferredData(mInfo, 'Summary'),
-                "AgeRating": this.getPreferredData(mInfo, 'AgeRating'),
+                "AgeRating": ageRating,
                 "Genre": genre.join(', '),
                 "Tags": tags.join(', '),
                 "Author": this.getPreferredData(mInfo, 'Author'),
                 "Artist": this.getPreferredData(mInfo, 'Artist'),
                 "Manga": this.getPreferredData(mInfo, 'Manga')
             }
+        }
+
+        if (this.config.CREATE_SERIES_JSON){
+            let mylarAgeRating = {
+                "Adults Only 18+": "Adult",
+                "MA15+": "15+",
+                "Teen": "12+",
+                "Everyone": "All Ages"
+            };
+
+            res["SeriesInfo"] = {
+                "type": "comicSeries",
+                "imprint": null,
+                "comicid": null,
+                "name": this.getPreferredData(mInfo, 'Series'),
+                "description_text": this.getPreferredData(mInfo, 'Summary') || null,
+                "description_formatted": null,
+                "booktype": "Print",
+                "collects": null,
+                "comic_image": null,
+                "publisher": this.getPreferredData(mInfo, 'Publisher') || null,
+                "volume": this.getPreferredData(mInfo, 'Volumes') || null,
+                "total_issues": this.getPreferredData(mInfo, 'Chapters') || null,
+                "year": this.getPreferredData(mInfo, 'PublishedYear') || null,
+                "publication_run": this.getPreferredData(mInfo, 'PublicationRun') || null,
+                "age_rating": mylarAgeRating[ageRating] || null,
+                "status": this.getPreferredData(mInfo, 'Status') || null
+            };
         }
 
         return res;

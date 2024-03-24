@@ -12,7 +12,8 @@ class MangaDex {
         response = response.data[0];
 
         let id = response.id;
-        let chapterCount = (response.lastChapter-0)||1;
+        let chapterCount = response.attributes.lastChapter||1;
+        let volumesCount = response.attributes.lastVolume && parseInt(response.attributes.lastVolume);
         let seriesTitle = Object.assign({}, {"ja-ro": response.attributes.title?.en}, ...response.attributes.altTitles)
         let description = response.attributes.description;
         let contentRating = this.getAgeRating(response.attributes.contentRating); // TODO: map content rating with cinfo values.
@@ -28,11 +29,13 @@ class MangaDex {
         //let characters = 
         let author = response.relationships.find(relationship => relationship.type === 'author').attributes.name;
         let artist = response.relationships.find(relationship => relationship.type === 'artist').attributes.name;
-
+        let publishedYear = response.attributes.year;
+        let status = ["completed", "cancelled"].includes(response.attributes.status) ? "Ended" : "Continuing";
 
         return {
             "id": id,
-            "Count": chapterCount,
+            "Chapters": chapterCount,
+            "Volumes": volumesCount,
             "Series": seriesTitle,
             "Summary": description,
             "AgeRating": contentRating,
@@ -40,6 +43,8 @@ class MangaDex {
             "Tags": tags,
             "Author": author,
             "Artist": artist,
+            "PublishedYear": publishedYear,
+            "Status": status,
             "Manga": isManga
         }
     }
