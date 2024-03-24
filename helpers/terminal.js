@@ -193,7 +193,7 @@ class Terminal {
                 content: `[${btnName}]`,
                 value: 'submit',
                 blurAttr: {},
-                focusAttr: { bgColor: 'grey' },
+                focusAttr: { bgColor: 'grey', bold: true },
                 x: 1,
                 y: row++
             });
