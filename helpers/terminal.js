@@ -161,8 +161,14 @@ class Terminal {
         let row = 4;
         let buttons = {};
 
-        let header = new termkit.Text({
+        let formContainer = new termkit.Container({
             parent: this.document.elements.body,
+            autoWidth: true,
+            autoHeight: true
+        });
+
+        let header = new termkit.Text({
+            parent: formContainer,
             x: 1,
             y: 2,
             content: "Select which metadata providers to use for this book:",
@@ -172,7 +178,7 @@ class Terminal {
         for (let [providerName, seriesData] of Object.entries(providersObj)) {
             let label = `${providerName} (Title Found: ${seriesData.Series || '?'})`;
             buttons[providerName] = new termkit.ToggleButton({
-                parent: this.document.elements.body,
+                parent: formContainer,
                 content: `[ ] ${label}`,
                 turnedOnContent: `[x] ${label}`,
                 turnedOnBlurAttr: { color: 'green' },
@@ -189,7 +195,7 @@ class Terminal {
 
         for (let btnName of ['Submit', 'Cancel']) {
             buttons[btnName] = new termkit.Button({
-                parent: this.document.elements.body,
+                parent: formContainer,
                 content: `[${btnName}]`,
                 value: 'submit',
                 blurAttr: {},
@@ -218,18 +224,13 @@ class Terminal {
                                               .filter((provider) => provider[1].value && ["Submit", "Cancel"].indexOf(provider[0]) === -1)
                                               .map((provider) => provider[0]);
 
-                header.destroy();
-                for (let el of Object.values(buttons)) {
-                    el.destroy();
-                }
+                formContainer.destroy();
 
                 self.document.elements.logBox.show();
-                //self.appendTextBox(selectedProviders);
 
                 resolve(selectedProviders);
             });
         });
-        //this.terminate();
     }
 
     appendTextBox(text){
