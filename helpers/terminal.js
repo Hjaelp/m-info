@@ -2,10 +2,11 @@ const path = require('path');
 const termkit = require('terminal-kit');
 
 class Terminal {
-    constructor(_config, mainFunc) {
+    constructor(_config) {
         let self = this;
 
-        this.mainFunc = mainFunc;
+        this.isActive = false;
+        this.restartOnFree = false;
 
         this.term = termkit.terminal;
         this.term.fullscreen(true);
@@ -21,8 +22,8 @@ class Terminal {
                 self.terminate();
             }
             else if (key === 'CTRL_R') {
-                self.clear();
-                self.mainFunc();
+                if (this.isActive) return;
+                this.restartOnFree = true;
             }
         });
         this.term.stdout.on('resize', () => {
@@ -37,6 +38,8 @@ class Terminal {
 
     async showMainMenuPrompt() {
         this.changeLayout("main");
+        
+        this.restartOnFree = false;
 
         let choices = [
             {content: "1. Update all books under the configured directory.", value: "all"},
@@ -76,7 +79,7 @@ class Terminal {
 
         let manualModeResp = await this.showUpdateMenuPrompt();
 
-        if (manualModeResp === "mainmenu") return this.showMainMenuPrompt();
+        if (manualModeResp === "mainmenu") return false;
         else return {
             updateMode: updateModeResp,
             manualMode: manualModeResp
@@ -125,6 +128,10 @@ class Terminal {
                 {"content": "", "disabled": true, "value": "" },
                 {"content": "../", "value": "../"},
             ].concat(directories)
+             .concat([
+                {"content": "", "disabled": true, "value": ""},
+                {"content": "^YReturn to Main Menu.", "markup": true, "value": "mainmenu"}
+             ])
         });
 
         this.setFocus(colMenu);
@@ -132,7 +139,12 @@ class Terminal {
         let resp = await colMenu.waitFor('submit');
         this.document.elements.body.clear();
 
-        if (resp !== "selected_dir") return this.showDirectoryPrompt(path.join(dir, resp), getDir);
+        if (!resp || resp === "mainmenu") {
+            return false;
+        }
+        else if (resp !== "selected_dir") {
+            return this.showDirectoryPrompt(path.join(dir, resp), getDir);
+        }
         else return dir;
     }
 
@@ -216,7 +228,10 @@ class Terminal {
 
         return new Promise(function (resolve, reject) {
             buttons['Cancel'].once('submit', function () { 
-                resolve(null);
+                formContainer.destroy();
+                self.document.elements.logBox.show();
+
+                resolve(false);
             });
 
             buttons['Submit'].once('submit', function () {
@@ -225,7 +240,6 @@ class Terminal {
                                               .map((provider) => provider[0]);
 
                 formContainer.destroy();
-
                 self.document.elements.logBox.show();
 
                 resolve(selectedProviders);
@@ -328,6 +342,13 @@ class Terminal {
         }
     }
 
+    setActive(state){
+        this.isActive = state;
+        if (state === true){
+            this.restartOnFree = false;
+        }
+    }
+
     setFocus(el){
         if (el){
             this.activeEl = el;
@@ -341,11 +362,14 @@ class Terminal {
     }
 
     terminate() {
-        this.term.grabInput(false);
-        this.term.hideCursor(false);
-        this.term.styleReset();
-        this.term.clear();
-        setTimeout(function(){process.exit();}, 100);
+        let self = this;
+        setTimeout(function(){
+            self.term.grabInput(false);
+            self.term.hideCursor(false);
+            self.term.styleReset();
+            self.term.clear();
+            process.exit();
+        }, 100);
     }
 }
 

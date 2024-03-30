@@ -4,7 +4,7 @@ const Terminal = require('./helpers/terminal.js');
 const Archive = require('./helpers/archive.js');
 const Manga = require('./helpers/manga.js');
 
-const terminal = new Terminal(config, start);
+const terminal = new Terminal(config);
 const archive = new Archive(config);
 const manga = new Manga(config);
 
@@ -13,6 +13,12 @@ const sleep = function (ms) {
 }
 
 async function start(){
+    while (true) {
+        await mainMenu();
+    }
+}
+
+async function mainMenu(){
     let resp = await terminal.showMainMenuPrompt();
     let dir = null;
 
@@ -25,10 +31,13 @@ async function start(){
         dir = await terminal.showDirectoryPrompt(config.BASE_DIR, archive.getDirs);
     }
 
-    updateBooks(dir, !!resp.manualMode);
+    if (!dir) return;
+
+    await updateBooks(dir, !!resp.manualMode);
 }
 
 async function updateBooks(dir, previewMode = false){
+    terminal.setActive(true);
     terminal.showUpdateScreen();
 
     terminal.appendTextBox("^G[Info]^ Searching for series in the base directory...");
@@ -65,7 +74,7 @@ async function updateBooks(dir, previewMode = false){
         if (previewMode) {
             manualModeProviders = await terminal.showManualProviderWindow(mangaInfo);
             if (!manualModeProviders) {
-                return start();
+                return false;
             }
             else if (!manualModeProviders.length){
                 terminal.appendTextBox(`^Y[Warn]^ No metadata providers for ${series.seriesName} have been selected. Skipping series.`);
@@ -204,16 +213,20 @@ async function updateBooks(dir, previewMode = false){
             coverProgressBar.progress();
         }
         mainProgressBar.progress();
+
+        terminal.setActive(false);
         terminal.appendTextBox(`\n^GDone updating ${series.seriesName}!^\n`);
         i++;
 
         if (i < totalSeries) {
-            terminal.appendTextBox(`^GContinuing in 5 seconds...^\n\n`);
+            terminal.appendTextBox(`^GContinuing in 5 seconds...^\n^GPress ^BCTRL+R^ ^Gto return to Main Menu.^\n`);
             await sleep(5000);
             providerProgressBar.hide();
             chapterProgressBar.hide();
             coverProgressBar.hide();
         }
+
+        if (terminal.restartOnFree) return false;
     }
 
     terminal.appendTextBox('\n^GAll tasks are completed! Press ^BCTRL+R^ ^Gto return to Main Menu.^\n');
