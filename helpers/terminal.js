@@ -22,8 +22,12 @@ class Terminal {
                 self.terminate();
             }
             else if (key === "CTRL_R") {
-                if (this.isActive) return;
-                this.restartOnFree = true;
+                if (self.isActive) return;
+                if (!self.restartOnFree) {
+                    self.appendTextBox("Returning to main menu...");
+                }
+
+                self.restartOnFree = true;
             }
         });
         this.term.stdout.on("resize", () => {
