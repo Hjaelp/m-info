@@ -10,5 +10,8 @@
     "fast-xml-parser": "^4.3.4",
     "jszip": "^3.10.1",
     "terminal-kit": "^3.0.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
   }
 }

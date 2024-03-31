@@ -3,7 +3,7 @@ const config = {
 
     METADATA_PROVIDERS: ["MangaDex", "MAL", "MangaUpdates"], // List of metadata providers to be used
     METADATA_PREFERENCE: { // List of preferred metadata providers for each field (in order of preference)
-        "default": ["MangaDex", "MangaUpdates", "MAL"], 
+        "default": ["MangaDex", "MangaUpdates", "MAL"],
         "Series": ["MangaDex", "MAL"], // Title
         "AlternateSeries": ["MangaDex", "MAL"], // Alternate title
         "ChapterDetails": ["MangaDex"],
@@ -36,5 +36,5 @@ const config = {
 
     CREATE_SERIES_JSON: true, // Save mylar-style series.json file.
 }
-   
+
 module.exports = config;

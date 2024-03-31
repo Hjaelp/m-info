@@ -1,6 +1,6 @@
 class MangaUpdates {
     static async getMangaId(req, seriesName) {
-        let response = await req.post(`https://api.mangaupdates.com/v1/series/search`, { "search": seriesName, "orderby": "score" }).catch(function (err) {
+        let response = await req.post("https://api.mangaupdates.com/v1/series/search", { "search": seriesName, "orderby": "score" }).catch(function (err) {
             console.error("getMangaId() ERR:", err);
             return false;
         });
@@ -28,18 +28,18 @@ class MangaUpdates {
 
         //let allTitles = Object.assign({}, ...response.attributes.altTitles, response.attributes.title);
         let chapterCount = response.latest_chapter;
-        let seriesTitle = {"en": response.title};
-        let description = { "en": response.description?.replace(/<[^>]*>/g, ' ').trim() };
-        let isManga = 'YesAndRightToLeft';
-        let tags = response.categories.filter((obj) => obj.votes >= 5 && (obj.votes_minus / obj.votes_plus < 0.25)).map((obj) => obj.category)
-        let genre = response.genres.map((obj) => obj.genre)
+        let seriesTitle = { "en": response.title };
+        let description = { "en": response.description?.replace(/<[^>]*>/g, " ").trim() };
+        let isManga = "YesAndRightToLeft";
+        let tags = response.categories.filter((obj) => obj.votes >= 5 && (obj.votes_minus / obj.votes_plus < 0.25)).map((obj) => obj.category);
+        let genre = response.genres.map((obj) => obj.genre);
         let contentRating = this.getAgeRating(genre);
-        let author = response.authors.find(rel => rel.type === 'Author')?.name;
-        let artist = response.authors.find(rel => rel.type === 'Artist')?.name;
+        let author = response.authors.find(rel => rel.type === "Author")?.name;
+        let artist = response.authors.find(rel => rel.type === "Artist")?.name;
         let publisher = response.publishers.sort((a, b) => {
-            return b.type === "Original"
+            return b.type === "Original";
         })[0]?.["publisher_name"];
-        let status = !!response.completed ? "Ended" : "Continuing";
+        let status = response.completed ? "Ended" : "Continuing";
         let publishedYear = response.year;
 
         return {
@@ -56,7 +56,7 @@ class MangaUpdates {
             "Status": status,
             "PublishedYear": publishedYear,
             "Manga": isManga
-        }
+        };
     }
 
     static async getChapters(req, seriesID, languages) {
@@ -77,30 +77,30 @@ class MangaUpdates {
         let cover = response.image;
 
         if (cover && cover.width > 600)
-            return {"main": cover.url};
+            return { "main": cover.url };
         else
-            return {"main": null};
+            return { "main": null };
     }
 
     static async getCoverStream(req, seriesID, url) {
         const response = await req({
-            "method": 'GET',
+            "method": "GET",
             "url": url,
-            "responseType": 'stream'
+            "responseType": "stream"
         }).catch((err) => {
             console.error("getMangaCover() Err:", err);
-        })
+        });
 
         if (!response || !response.data) return null;
         return response.data;
     }
 
     static getAgeRating(data) {
-        let genre = data.join(' ');
-        if (/(adult|hentai|smut|lolicon|shotacon)/i.test(genre)) return 'Adults Only 18+';
-        else if (/(mature|seinen|josei|yaoi|yuri)/i.test(genre)) return 'MA15+';
-        else if (/(ecchi|shoujo ai|shounen ai|psychological|horror|harem|tragedy)/i.test(genre)) return 'Teen'
-        else return 'Everyone';
+        let genre = data.join(" ");
+        if (/(adult|hentai|smut|lolicon|shotacon)/i.test(genre)) return "Adults Only 18+";
+        else if (/(mature|seinen|josei|yaoi|yuri)/i.test(genre)) return "MA15+";
+        else if (/(ecchi|shoujo ai|shounen ai|psychological|horror|harem|tragedy)/i.test(genre)) return "Teen";
+        else return "Everyone";
     }
 }
 

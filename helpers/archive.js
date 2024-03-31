@@ -1,10 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 const JSZip = require("jszip");
-const parser  = new (require('./parser.js'));
+const parser = new (require("./parser.js"));
 
 class Archive {
-    constructor(config = {}){
+    constructor(config = {}) {
         this.config = config;
     }
 
@@ -27,7 +27,7 @@ class Archive {
                 }
 
                 let extension = path.extname(entPath);
-                if (extension === ".cbz"){
+                if (extension === ".cbz") {
                     let parsedFilename = parser.parseFilename(path.parse(ent.name).name);
 
                     let cinfo = await this.getComicMetadata(entPath, true);
@@ -36,7 +36,7 @@ class Archive {
                         volume: parsedFilename.volume,
                         chapter: parsedFilename.chapter,
                         metadata: cinfo.metadata
-                    }
+                    };
                 }
                 else if (ent.name.toLowerCase() === "comicinfo.xml") {
                     seriesDir[parentBasename].dirXML = true;
@@ -44,14 +44,14 @@ class Archive {
                     seriesDir[parentBasename].metadata = cinfo.metadata;
                 }
             }
-        };
+        }
 
         return seriesDir;
     }
 
     async getDirs(dir) {
         let res = [];
-        const ents = await fs.promises.readdir(dir, { withFileTypes: true});
+        const ents = await fs.promises.readdir(dir, { withFileTypes: true });
 
         for (let ent of ents) {
             if (ent.isDirectory()) {
@@ -65,7 +65,7 @@ class Archive {
     readZip(filePath) {
         const jsZIP = new JSZip();
         return new JSZip.external.Promise(function (resolve, reject) {
-            fs.readFile(filePath, function(err, data) {
+            fs.readFile(filePath, function (err, data) {
                 if (err) {
                     console.log("readZip() ERR:", err);
                     reject(err);
@@ -75,7 +75,7 @@ class Archive {
             });
         }).then(function (data) {
             return jsZIP.loadAsync(data);
-        })
+        });
     }
 
     async getComicMetadata(filePath, isZip = false) {
@@ -83,8 +83,8 @@ class Archive {
             metadata: {},
             xmlinfo: false
         };
-        
-        if (isZip){
+
+        if (isZip) {
             try {
                 await this.readZip(filePath).then(async (zipData) => {
                     await zipData.file("ComicInfo.xml")?.async("string").then((xml) => {
@@ -108,12 +108,12 @@ class Archive {
             }
         }
         else {
-            let xml = await fs.promises.readFile(filePath, 'utf8');
+            let xml = await fs.promises.readFile(filePath, "utf8");
             let parsed = parser.parse(xml);
             resp.metadata = parsed;
             resp.xmlinfo = true;
 
-            let pages = await fs.promises.readdir(path.dirname(filePath), { withFileTypes: true});
+            let pages = await fs.promises.readdir(path.dirname(filePath), { withFileTypes: true });
             pages = pages.filter((file) => {
                 let fn = file.name.toLowerCase();
                 let ext = path.extname(fn).toLowerCase();
@@ -127,21 +127,21 @@ class Archive {
         return resp;
     }
 
-    async saveComicMetadata(obj, filePath){
+    async saveComicMetadata(obj, filePath) {
         var xml = parser.objToXML(obj);
-        
+
         const isZip = [".cbz", ".zip"].indexOf(path.extname(filePath).toLowerCase()) > -1;
 
-        if (isZip){
+        if (isZip) {
             await this.readZip(filePath).then(async (zipData) => {
                 zipData.file("ComicInfo.xml", xml);
 
-                await zipData.generateNodeStream({ type: "nodebuffer"})
-                           .pipe(fs.createWriteStream(filePath))
-                           .on("finish", () => { /*console.log("Writing finished!")*/ });
-                }).catch((err) => {
-                    console.log("saveComicMetadata() ERR:", err, filePath);
-                });
+                await zipData.generateNodeStream({ type: "nodebuffer" })
+                    .pipe(fs.createWriteStream(filePath))
+                    .on("finish", () => { /*console.log("Writing finished!")*/ });
+            }).catch((err) => {
+                console.log("saveComicMetadata() ERR:", err, filePath);
+            });
         }
         else return await fs.promises.writeFile(path, xml);
     }
@@ -152,7 +152,7 @@ class Archive {
     }
 
     async saveComicCover(imageFilename, imageStream, coverPath, destFilename) {
-        destFilename = path.parse(destFilename).name
+        destFilename = path.parse(destFilename).name;
         const coverExt = path.extname(imageFilename).toLowerCase();
 
         const stat = await fs.promises.lstat(coverPath);
@@ -168,10 +168,10 @@ class Archive {
         imageStream.pipe(writer);
 
         return new Promise((resolve, reject) => {
-            writer.on('finish', () => {
+            writer.on("finish", () => {
                 //console.log('Image saved successfully');
                 resolve();
-            }).on('error', (err) => {
+            }).on("error", (err) => {
                 console.error("Error saving image", coverPath, err);
                 reject(err);
             });
@@ -179,4 +179,4 @@ class Archive {
     }
 }
 
-module.exports = Archive
+module.exports = Archive;

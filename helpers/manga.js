@@ -1,9 +1,5 @@
-const axios = require('axios');
-const { Agent } = require('https');
-
-const sleep = function (ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+const axios = require("axios");
+const { Agent } = require("https");
 
 class Manga {
     constructor(config) {
@@ -12,8 +8,8 @@ class Manga {
         this.selectedProviders = {};
 
         this.apiInstance = axios.create({
-            timeout: 60000, 
-            httpsAgent: new Agent({keepAlive: true}),
+            timeout: 60000,
+            httpsAgent: new Agent({ keepAlive: true }),
         });
 
         for (let provider of this.config.METADATA_PROVIDERS) {
@@ -28,9 +24,9 @@ class Manga {
 
     setProviders(providerNames) {
         if (!providerNames) providerNames = this.config.METADATA_PROVIDERS;
-        
+
         this.selectedProviders = {};
-        for (let provider of providerNames){
+        for (let provider of providerNames) {
             if (this.availableProviders[provider]) {
                 this.selectedProviders[provider] = this.availableProviders[provider];
             }
@@ -47,12 +43,12 @@ class Manga {
             return `Searching ${provider} for metadata...`;
         });
         progressBar.setTasks(progressItems);
-        
+
         for (let provider of providerNames) {
             let resp = await this.selectedProviders[provider].getInfo(this.apiInstance, seriesName);
             if (resp) mInfo[provider] = resp;
             if (resp.id) mIds[provider] = resp.id;
-            
+
             progressBar.progress();
         }
 
@@ -60,46 +56,46 @@ class Manga {
             return false;
         }
 
-        if (preview){
-            for (let provider of Object.keys(mInfo)){
+        if (preview) {
+            for (let provider of Object.keys(mInfo)) {
                 if (!provider || !mInfo[provider] || !mInfo[provider]["Series"]) continue;
                 res[provider] = {
                     "id": mIds[provider],
                     "Series": this.getPreferredLang(mInfo[provider]["Series"], "Series") || "?",
                     "Genre": mInfo[provider].Genre?.join(", ") || "?",
                     "Author": mInfo[provider].Author || "?"
-                }
+                };
             }
             return res;
         }
 
-        let chapterCount = this.getPreferredData(mInfo, 'Count');
+        let chapterCount = this.getPreferredData(mInfo, "Count");
 
-        let genre = this.config['METADATA_AGGREGATE'] ? this.aggregateField(mInfo, 'Genre') 
-                                                      : this.getPreferredData(mInfo, 'Genre');
-        let tags = this.config['METADATA_AGGREGATE'] ? this.aggregateField(mInfo, 'Tags')
-                                                     : this.getPreferredData(mInfo, 'Tags');
+        let genre = this.config["METADATA_AGGREGATE"] ? this.aggregateField(mInfo, "Genre")
+            : this.getPreferredData(mInfo, "Genre");
+        let tags = this.config["METADATA_AGGREGATE"] ? this.aggregateField(mInfo, "Tags")
+            : this.getPreferredData(mInfo, "Tags");
 
-        let ageRating = this.getPreferredData(mInfo, 'AgeRating');
+        let ageRating = this.getPreferredData(mInfo, "AgeRating");
 
         res = {
             "id": mIds,
             "Count": chapterCount,
             "ComicInfo": {
-                "Series": this.getPreferredData(mInfo, 'Series'),
-                "Count": this.getPreferredData(mInfo, 'Chapters'),
-                "AlternateSeries": this.getPreferredData(mInfo, 'Series', 1),
-                "Summary": this.getPreferredData(mInfo, 'Summary'),
+                "Series": this.getPreferredData(mInfo, "Series"),
+                "Count": this.getPreferredData(mInfo, "Chapters"),
+                "AlternateSeries": this.getPreferredData(mInfo, "Series", 1),
+                "Summary": this.getPreferredData(mInfo, "Summary"),
                 "AgeRating": ageRating,
-                "Genre": genre.join(', '),
-                "Tags": tags.join(', '),
-                "Author": this.getPreferredData(mInfo, 'Author'),
-                "Artist": this.getPreferredData(mInfo, 'Artist'),
-                "Manga": this.getPreferredData(mInfo, 'Manga')
+                "Genre": genre.join(", "),
+                "Tags": tags.join(", "),
+                "Author": this.getPreferredData(mInfo, "Author"),
+                "Artist": this.getPreferredData(mInfo, "Artist"),
+                "Manga": this.getPreferredData(mInfo, "Manga")
             }
-        }
+        };
 
-        if (this.config.CREATE_SERIES_JSON){
+        if (this.config.CREATE_SERIES_JSON) {
             let mylarAgeRating = {
                 "Adults Only 18+": "Adult",
                 "MA15+": "15+",
@@ -111,19 +107,19 @@ class Manga {
                 "type": "comicSeries",
                 "imprint": null,
                 "comicid": null,
-                "name": this.getPreferredData(mInfo, 'Series'),
-                "description_text": this.getPreferredData(mInfo, 'Summary') || null,
+                "name": this.getPreferredData(mInfo, "Series"),
+                "description_text": this.getPreferredData(mInfo, "Summary") || null,
                 "description_formatted": null,
                 "booktype": "Print",
                 "collects": null,
                 "comic_image": null,
-                "publisher": this.getPreferredData(mInfo, 'Publisher') || null,
-                "volume": this.getPreferredData(mInfo, 'Volumes') || null,
-                "total_issues": this.getPreferredData(mInfo, 'Chapters') || null,
-                "year": this.getPreferredData(mInfo, 'PublishedYear') || null,
-                "publication_run": this.getPreferredData(mInfo, 'PublicationRun') || null,
+                "publisher": this.getPreferredData(mInfo, "Publisher") || null,
+                "volume": this.getPreferredData(mInfo, "Volumes") || null,
+                "total_issues": this.getPreferredData(mInfo, "Chapters") || null,
+                "year": this.getPreferredData(mInfo, "PublishedYear") || null,
+                "publication_run": this.getPreferredData(mInfo, "PublicationRun") || null,
                 "age_rating": mylarAgeRating[ageRating] || null,
-                "status": this.getPreferredData(mInfo, 'Status') || null
+                "status": this.getPreferredData(mInfo, "Status") || null
             };
         }
 
@@ -131,8 +127,8 @@ class Manga {
     }
 
     async getChapters(seriesID, progressBar) {
-        let providers = this.config['METADATA_PREFERENCE']['ChapterDetails'] || this.config['METADATA_PREFERENCE']['default'];
-        let acceptableLanguages = this.config['METADATA_LANG']['ChapterDetails'] || this.config['METADATA_LANG']['default'];
+        let providers = this.config["METADATA_PREFERENCE"]["ChapterDetails"] || this.config["METADATA_PREFERENCE"]["default"];
+        let acceptableLanguages = this.config["METADATA_LANG"]["ChapterDetails"] || this.config["METADATA_LANG"]["default"];
 
         let progressItems = Object.keys(providers).map((provider) => {
             return `Searching ${provider} for chapter metadata...`;
@@ -148,7 +144,7 @@ class Manga {
             let resp = await this.selectedProviders[provider].getChapters(this.apiInstance, seriesID[provider], acceptableLanguages);
 
             for (let chapter of Object.keys(resp)) {
-                resp[chapter] = this.getPreferredLang(resp[chapter], 'chapterDetails') || {};
+                resp[chapter] = this.getPreferredLang(resp[chapter], "chapterDetails") || {};
             }
 
             progressBar.progress();
@@ -157,8 +153,7 @@ class Manga {
     }
 
     async getCovers(seriesID, progressBar) {
-        let mCovers = {};
-        let providers = this.config['METADATA_PREFERENCE']['Cover'] || this.config['METADATA_PREFERENCE']['default'];
+        let providers = this.config["METADATA_PREFERENCE"]["Cover"] || this.config["METADATA_PREFERENCE"]["default"];
 
         let progressItems = Object.keys(providers).map((provider) => {
             return `Searching ${provider} for cover metadata...`;
@@ -176,7 +171,7 @@ class Manga {
     }
 
     async getCoverStream(seriesID, filename) {
-        let providers = this.config['METADATA_PREFERENCE']['Cover'] || this.config['METADATA_PREFERENCE']['default'];
+        let providers = this.config["METADATA_PREFERENCE"]["Cover"] || this.config["METADATA_PREFERENCE"]["default"];
         for (let provider of providers) {
             if (!this.selectedProviders[provider]) continue;
 
@@ -187,14 +182,14 @@ class Manga {
 
     mergeComicInfo(origInfo, ...args) {
         let res = origInfo || {};
-        if (res['ComicInfo']) res = res['ComicInfo'];
+        if (res["ComicInfo"]) res = res["ComicInfo"];
 
         for (let i = 0; i < args.length; i++) {
             let newInfo = args[i];
-            if (newInfo['ComicInfo']) newInfo = newInfo['ComicInfo'];
+            if (newInfo["ComicInfo"]) newInfo = newInfo["ComicInfo"];
 
             for (let key of Object.keys(newInfo)) {
-                if ((this.config['METADATA_OVERWRITE'] || !res[key]) && newInfo[key]){
+                if ((this.config["METADATA_OVERWRITE"] || !res[key]) && newInfo[key]) {
                     res[key] = newInfo[key];
                 }
             }
@@ -207,21 +202,21 @@ class Manga {
 
     aggregateField(data, field) {
         let res = Object.values(data).map((prov) => prov[field]).flat()
-                        .filter((val, i, arr) => 
-                            !!val && arr.findIndex((f) => (val + '').toLowerCase() === (f + '').toLowerCase()) === i
-                        )
-                        .sort();
+            .filter((val, i, arr) =>
+                !!val && arr.findIndex((f) => (val + "").toLowerCase() === (f + "").toLowerCase()) === i
+            )
+            .sort();
         return res;
     }
 
-    getPreferredData(data, field, skipFirst = 0){
+    getPreferredData(data, field, skipFirst = 0) {
         let i = 0;
         let checkLang = Object.keys(this.config.METADATA_LANG).includes(field);
         let preferredProviders = this.config.METADATA_PREFERENCE[field] || this.config.METADATA_PREFERENCE["default"];
         for (let provider of preferredProviders) {
             if (data[provider]?.[field]) {
                 let preferredData = data[provider][field];
-                if (checkLang){
+                if (checkLang) {
                     preferredData = this.getPreferredLang(preferredData, field, skipFirst);
                     if (preferredData) return preferredData;
                 }
@@ -232,7 +227,7 @@ class Manga {
         return false;
     }
 
-    getPreferredLang(data, field, skipFirst = 0){
+    getPreferredLang(data, field, skipFirst = 0) {
         let i = 0;
         let preferedLangs = this.config.METADATA_LANG[field] || this.config.METADATA_LANG["default"];
 
@@ -245,16 +240,16 @@ class Manga {
         return false;
     }
 
-    getFirstChapters(chapters){
+    getFirstChapters(chapters) {
         let res = {};
         let lastVol = -1;
 
         for (let chapter of chapters) {
-            if (!chapter || !chapter.hasOwnProperty('volume')) continue;
-            let chapterNum = chapter.chapter-0;
-            let volumeNum = chapter.volume-0;
+            if (!chapter || !Object.prototype.hasOwnProperty.call(chapter, "volume")) continue;
+            let chapterNum = chapter.chapter - 0;
+            let volumeNum = chapter.volume - 0;
 
-            if (volumeNum > lastVol){
+            if (volumeNum > lastVol) {
                 res[volumeNum] = {
                     "chapter": chapterNum,
                     "volume": volumeNum,
@@ -268,4 +263,4 @@ class Manga {
     }
 }
 
-module.exports = Manga
+module.exports = Manga;

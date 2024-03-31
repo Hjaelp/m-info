@@ -12,23 +12,23 @@ class MangaDex {
         response = response.data[0];
 
         let id = response.id;
-        let chapterCount = response.attributes.lastChapter||1;
+        let chapterCount = response.attributes.lastChapter || 1;
         let volumesCount = response.attributes.lastVolume && parseInt(response.attributes.lastVolume);
-        let seriesTitle = Object.assign({}, {"ja-ro": response.attributes.title?.en}, ...response.attributes.altTitles)
+        let seriesTitle = Object.assign({}, { "ja-ro": response.attributes.title?.en }, ...response.attributes.altTitles);
         let description = response.attributes.description;
         let contentRating = this.getAgeRating(response.attributes.contentRating); // TODO: map content rating with cinfo values.
-        let isManga = 'YesAndRightToLeft';
-        let demographic = response.attributes.publicationDemographic || '';
+        let isManga = "YesAndRightToLeft";
+        let demographic = response.attributes.publicationDemographic || "";
         demographic = demographic.charAt(0).toUpperCase() + demographic.substr(1);
         let genre = ([demographic]).concat(response.attributes.tags
-            .map(tag => tag.attributes.group === 'genre' && tag.attributes.name?.en))
+            .map(tag => tag.attributes.group === "genre" && tag.attributes.name?.en))
             .filter(genre => !!genre).sort();
         let tags = response.attributes.tags
-            .map(tag => tag.attributes.group !== 'genre' && tag.attributes.name?.en)
+            .map(tag => tag.attributes.group !== "genre" && tag.attributes.name?.en)
             .filter(tag => !!tag).sort();
         //let characters = 
-        let author = response.relationships.find(relationship => relationship.type === 'author').attributes.name;
-        let artist = response.relationships.find(relationship => relationship.type === 'artist').attributes.name;
+        let author = response.relationships.find(relationship => relationship.type === "author").attributes.name;
+        let artist = response.relationships.find(relationship => relationship.type === "artist").attributes.name;
         let publishedYear = response.attributes.year;
         let status = ["completed", "cancelled"].includes(response.attributes.status) ? "Ended" : "Continuing";
 
@@ -46,7 +46,7 @@ class MangaDex {
             "PublishedYear": publishedYear,
             "Status": status,
             "Manga": isManga
-        }
+        };
     }
 
     static async getChapters(req, seriesID, acceptableLanguages) {
@@ -58,7 +58,7 @@ class MangaDex {
         acceptableLanguages = acceptableLanguages.map((lang) => ("translatedLanguage[]=" + lang));
 
         do {
-            response = await req.get(`https://api.mangadex.org/manga/${seriesID}/feed?${acceptableLanguages.join('&')}&limit=100&offset=${offset}`).catch(function (err) {
+            response = await req.get(`https://api.mangadex.org/manga/${seriesID}/feed?${acceptableLanguages.join("&")}&limit=100&offset=${offset}`).catch(function (err) {
                 console.error("getMangaChapters() ERR:", err);
             });
 
@@ -67,13 +67,13 @@ class MangaDex {
             if (!response || !response.data || !response.data.length) break;
 
             for (let chapter of response.data) {
-                const volumeNum = chapter.attributes.volume || '0';
-                const chapterNum = chapter.attributes.chapter || '0';
+                const volumeNum = chapter.attributes.volume || "0";
+                const chapterNum = chapter.attributes.chapter || "0";
 
                 if (!results[chapterNum])
                     results[chapterNum] = {};
 
-                let title = '';
+                let title = "";
                 let publishedDate = null;
 
                 if (chapter.attributes.chapter && chapter.attributes.title)
@@ -96,11 +96,11 @@ class MangaDex {
                     "Month": publishedDate.getMonth() + 1,
                     "Day": publishedDate.getDate(),
                     "Pages": chapter.attributes.pages
-                }
+                };
             }
 
             if (response.total > response.limit + offset) {
-                offset += (response.data.limit-0||100);
+                offset += (response.data.limit - 0 || 100);
                 moreResults = true;
             }
             else moreResults = false;
@@ -124,9 +124,9 @@ class MangaDex {
 
             if (!response || !response.data || !response.data.length) break;
 
-            if (!results['main']) results['main'] = response.data[0]?.attributes.fileName;
+            if (!results["main"]) results["main"] = response.data[0]?.attributes.fileName;
             for (let cover of response.data) {
-                let volume = cover.attributes.volume || '0';
+                let volume = cover.attributes.volume || "0";
 
                 if (!results[volume]) {
                     results[volume] = cover.attributes.fileName;
@@ -145,12 +145,12 @@ class MangaDex {
 
     static async getCoverStream(req, seriesID, filename) {
         const response = await req({
-            "method": 'GET',
+            "method": "GET",
             "url": `https://uploads.mangadex.org/covers/${seriesID}/${filename}`,
-            "responseType": 'stream'
+            "responseType": "stream"
         }).catch((err) => {
             console.error("getMangaCover() Err:", err);
-        })
+        });
 
         if (!response || !response.data) return null;
         return response.data;
@@ -162,7 +162,7 @@ class MangaDex {
             "suggestive": "Teen",
             //"erotica": "MA15+",
             "erotica": "Adults Only 18+"
-        }
+        };
 
         return ratingMap[data] || data;
     }
