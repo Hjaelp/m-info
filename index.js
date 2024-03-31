@@ -1,4 +1,14 @@
-const config = require("./config.js");
+const config = (function () {
+    try {
+        return require("./config.js");
+    }
+    catch (e) {
+        if (e.code === "MODULE_NOT_FOUND") {
+            throw new Error("config.js file is not found. Please rename and edit `example.config.js` to `config.js` then try again.");
+        }
+        else throw e;
+    }
+})();
 
 const Terminal = require("./helpers/terminal.js");
 const Archive = require("./helpers/archive.js");
