@@ -153,7 +153,7 @@ class Terminal {
         this.setFocus(textBox);
     }
 
-    async showManualProviderWindow(providersObj) {
+    async showManualProviderWindow(seriesName, providersObj) {
         this.document.elements.logBox.hide();
 
         let self = this;
@@ -170,7 +170,7 @@ class Terminal {
             parent: formContainer,
             x: 1,
             y: 2,
-            content: "Select which metadata providers to use for this book:",
+            content: `Select which metadata providers to use for this book (${seriesName}):`,
             attr: { color: "cyan", bold: true }
         });
 

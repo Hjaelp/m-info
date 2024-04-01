@@ -65,7 +65,7 @@ class Tagger {
         let manualModeProviders = [];
 
         if (previewMode) {
-            manualModeProviders = await this.terminal.showManualProviderWindow(seriesInfo);
+            manualModeProviders = await this.terminal.showManualProviderWindow(seriesDir.seriesName, seriesInfo);
             if (!manualModeProviders) {
                 return false;
             }
