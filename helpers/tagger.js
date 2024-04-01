@@ -15,7 +15,6 @@ class Tagger {
     }
 
     async updateBooks(dir, previewMode = false) {
-        this.terminal.setActive(true);
         this.terminal.showUpdateScreen();
 
         this.terminal.appendTextBox("^G[Info]^ Searching for series in the base directory...");
@@ -35,13 +34,15 @@ class Tagger {
             let coversInfo = await this.getCovers(seriesDir, seriesInfo);
             await this.saveCovers(seriesDir, seriesInfo, coversInfo);
 
-            this.terminal.setActive(false);
             this.terminal.appendTextBox(`\n^GDone updating ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}!^\n`);
 
             i++;
             if (i < totalSeries) {
                 this.terminal.appendTextBox("^GContinuing in 5 seconds...^\n^GPress ^BCTRL+R^ ^Gto return to Main Menu.^\n");
-                await sleep(5000);
+                let res = await Promise.race([sleep(5000), this.terminal.waitForReturn()]);
+                if (res === "return") {
+                    return;
+                }
                 this.progressBars["provider"].hide();
                 this.progressBars["chapter"].hide();
                 this.progressBars["cover"].hide();
@@ -51,6 +52,7 @@ class Tagger {
         }
 
         this.terminal.appendTextBox("\n^GAll tasks are completed! Press ^BCTRL+R^ ^Gto return to Main Menu.^\n");
+        await this.terminal.waitForReturn();
     }
 
     async getSeriesInfo(seriesDir, previewMode) {

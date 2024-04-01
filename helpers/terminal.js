@@ -5,9 +5,6 @@ class Terminal {
     constructor() {
         let self = this;
 
-        this.isActive = false;
-        this.restartOnFree = false;
-
         this.term = termkit.terminal;
         this.term.fullscreen(true);
 
@@ -17,19 +14,7 @@ class Terminal {
         this.changeLayout("main");
 
         this.term.hideCursor();
-        this.term.on("key", (key) => {
-            if (key === "CTRL_C") {
-                self.terminate();
-            }
-            else if (key === "CTRL_R") {
-                if (self.isActive) return;
-                if (!self.restartOnFree) {
-                    self.appendTextBox("Returning to main menu...");
-                }
-
-                self.restartOnFree = true;
-            }
-        });
+        this.term.on("key", this.onKeyPress.bind(this));
         this.term.stdout.on("resize", () => {
             if (self.document.elements.header_text) {
                 self.setHeader(self.document.elements.header_text.content[0]);
@@ -42,8 +27,6 @@ class Terminal {
 
     async showMainMenuPrompt() {
         this.changeLayout("main");
-
-        this.restartOnFree = false;
 
         let choices = [
             { content: "1. Update all books under the configured directory.", value: "all" },
@@ -346,13 +329,6 @@ class Terminal {
         }
     }
 
-    setActive(state) {
-        this.isActive = state;
-        if (state === true) {
-            this.restartOnFree = false;
-        }
-    }
-
     setFocus(el) {
         if (el) {
             this.activeEl = el;
@@ -363,6 +339,26 @@ class Terminal {
 
     clear() {
         return this.term.clear();
+    }
+
+    onKeyPress(key) {
+        if (key === "CTRL_C") {
+            this.terminate();
+        }
+    }
+
+    waitForReturn(){
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            let cb = function (key) {
+                if (key === "CTRL_R") {
+                    self.term.off("key", cb);
+                    resolve("return");
+                }
+            };
+
+            self.term.on("key", cb);
+        });
     }
 
     terminate() {
