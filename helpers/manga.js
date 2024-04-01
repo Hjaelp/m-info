@@ -80,6 +80,7 @@ class Manga {
 
         res = {
             "id": mIds,
+            "seriesName": seriesName,
             "Count": chapterCount,
             "ComicInfo": {
                 "Series": this.getPreferredData(mInfo, "Series"),

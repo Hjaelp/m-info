@@ -4,11 +4,7 @@ const JSZip = require("jszip");
 const parser = new (require("./parser.js"));
 
 class Archive {
-    constructor(config = {}) {
-        this.config = config;
-    }
-
-    async walkDirs(dir) {
+    static async walkDirs(dir) {
         let seriesDir = {};
 
         const ents = await fs.promises.readdir(dir, { withFileTypes: true, recursive: true });
@@ -49,7 +45,7 @@ class Archive {
         return seriesDir;
     }
 
-    async getDirs(dir) {
+    static async getDirs(dir) {
         let res = [];
         const ents = await fs.promises.readdir(dir, { withFileTypes: true });
 
@@ -62,7 +58,7 @@ class Archive {
         return res;
     }
 
-    readZip(filePath) {
+    static readZip(filePath) {
         const jsZIP = new JSZip();
         return new JSZip.external.Promise(function (resolve, reject) {
             fs.readFile(filePath, function (err, data) {
@@ -78,7 +74,7 @@ class Archive {
         });
     }
 
-    async getComicMetadata(filePath, isZip = false) {
+    static async getComicMetadata(filePath, isZip = false) {
         let resp = {
             metadata: {},
             xmlinfo: false
@@ -127,7 +123,7 @@ class Archive {
         return resp;
     }
 
-    async saveComicMetadata(obj, filePath) {
+    static async saveComicMetadata(obj, filePath) {
         var xml = parser.objToXML(obj);
 
         const isZip = [".cbz", ".zip"].indexOf(path.extname(filePath).toLowerCase()) > -1;
@@ -146,12 +142,12 @@ class Archive {
         else return await fs.promises.writeFile(path, xml);
     }
 
-    async saveSeriesJSON(obj, dir) {
+    static async saveSeriesJSON(obj, dir) {
         let filename = path.join(dir, "series.json");
         return await fs.promises.writeFile(filename, JSON.stringify(obj));
     }
 
-    async saveComicCover(imageFilename, imageStream, coverPath, destFilename) {
+    static async saveComicCover(imageFilename, imageStream, coverPath, destFilename) {
         destFilename = path.parse(destFilename).name;
         const coverExt = path.extname(imageFilename).toLowerCase();
 

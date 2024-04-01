@@ -2,7 +2,7 @@ const path = require("path");
 const termkit = require("terminal-kit");
 
 class Terminal {
-    constructor(_config) {
+    constructor() {
         let self = this;
 
         this.isActive = false;
