@@ -123,7 +123,7 @@ class Archive {
         return resp;
     }
 
-    static async saveComicMetadata(obj, filePath) {
+    static async saveComicMetadata(obj, filePath, useTemp) {
         var xml = parser.objToXML(obj);
 
         const isZip = [".cbz", ".zip"].indexOf(path.extname(filePath).toLowerCase()) > -1;
@@ -131,10 +131,22 @@ class Archive {
         if (isZip) {
             await this.readZip(filePath).then(async (zipData) => {
                 zipData.file("ComicInfo.xml", xml);
-
+                
+                let dir, fn, tmpFn;
+                if (useTemp) {
+                    dir = path.dirname(filePath);
+                    fn = path.basename(filePath);
+                    tmpFn = fn + ".tmp";
+                    filePath = path.join(dir, tmpFn);
+                }
                 await zipData.generateNodeStream({ type: "nodebuffer" })
                     .pipe(fs.createWriteStream(filePath))
-                    .on("finish", () => { /*console.log("Writing finished!")*/ });
+                    .on("finish", async () => { 
+                        if (useTemp) {
+                            await fs.promises.unlink(path.join(dir, fn));
+                            await fs.promises.rename(path.join(dir, tmpFn), path.join(dir, fn));
+                        }
+                    });
             }).catch((err) => {
                 console.log("saveComicMetadata() ERR:", err, filePath);
             });

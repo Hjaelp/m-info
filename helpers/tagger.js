@@ -139,7 +139,7 @@ class Tagger {
                     chMetadata,
                     { "Notes": "Metadata saved using m-info.js" }
                 );
-                await archive.saveComicMetadata(fullMetadata, seriesDir["archives"][chapter].path);
+                await archive.saveComicMetadata(fullMetadata, seriesDir["archives"][chapter].path, this.config.USE_TEMPORARY_FILES);
                 this.progressBars["chapter"].progress();
             }
 
