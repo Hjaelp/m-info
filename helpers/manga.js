@@ -69,7 +69,15 @@ class Manga {
             return res;
         }
 
-        let chapterCount = this.getPreferredData(mInfo, "Count");
+        let chapterCount = this.getPreferredData(mInfo, "Chapters");
+        let volumeCount = this.getPreferredData(mInfo, "Volumes");
+        let seriesTitle  = this.getPreferredData(mInfo, "Series");
+        let altSeriesTitle = this.getPreferredData(mInfo, "Series", 1);
+        let summary = this.getPreferredData(mInfo, "Summary");
+        let author = this.getPreferredData(mInfo, "Author");
+        let artist = this.getPreferredData(mInfo, "Artist");
+        let bookType = this.getPreferredData(mInfo, "Manga");
+
 
         let genre = this.config["METADATA_AGGREGATE"] ? this.aggregateField(mInfo, "Genre")
             : this.getPreferredData(mInfo, "Genre");
@@ -83,20 +91,25 @@ class Manga {
             "seriesName": seriesName,
             "Count": chapterCount,
             "ComicInfo": {
-                "Series": this.getPreferredData(mInfo, "Series"),
-                "Count": this.getPreferredData(mInfo, "Chapters"),
-                "AlternateSeries": this.getPreferredData(mInfo, "Series", 1),
-                "Summary": this.getPreferredData(mInfo, "Summary"),
+                "Series": seriesTitle,
+                "Count": chapterCount,
+                "AlternateSeries": altSeriesTitle,
+                "Summary": summary,
                 "AgeRating": ageRating,
                 "Genre": genre.join(", "),
                 "Tags": tags.join(", "),
-                "Author": this.getPreferredData(mInfo, "Author"),
-                "Artist": this.getPreferredData(mInfo, "Artist"),
-                "Manga": this.getPreferredData(mInfo, "Manga")
+                "Author": author,
+                "Artist": artist,
+                "Manga": bookType
             }
         };
 
         if (this.config.CREATE_SERIES_JSON) {
+            let publisher = this.getPreferredData(mInfo, "Publisher");
+            let publishedYear = this.getPreferredData(mInfo, "PublishedYear");
+            let publicationRun = this.getPreferredData(mInfo, "PublicationRun");
+            let bookStatus = this.getPreferredData(mInfo, "Status");
+
             let mylarAgeRating = {
                 "Adults Only 18+": "Adult",
                 "MA15+": "15+",
@@ -108,19 +121,19 @@ class Manga {
                 "type": "comicSeries",
                 "imprint": null,
                 "comicid": null,
-                "name": this.getPreferredData(mInfo, "Series"),
-                "description_text": this.getPreferredData(mInfo, "Summary") || null,
+                "name": seriesTitle,
+                "description_text": summary || null,
                 "description_formatted": null,
                 "booktype": "Print",
                 "collects": null,
                 "comic_image": null,
-                "publisher": this.getPreferredData(mInfo, "Publisher") || null,
-                "volume": this.getPreferredData(mInfo, "Volumes") || null,
-                "total_issues": this.getPreferredData(mInfo, "Chapters") || null,
-                "year": this.getPreferredData(mInfo, "PublishedYear") || null,
-                "publication_run": this.getPreferredData(mInfo, "PublicationRun") || null,
+                "publisher": publisher || null,
+                "volume": volumeCount || null,
+                "total_issues": chapterCount || null,
+                "year": publishedYear || null,
+                "publication_run": publicationRun || null,
                 "age_rating": mylarAgeRating[ageRating] || null,
-                "status": this.getPreferredData(mInfo, "Status") || null
+                "status": bookStatus || null
             };
         }
 
