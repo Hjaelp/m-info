@@ -70,6 +70,10 @@ class Manga {
         }
 
         let chapterCount = this.getPreferredData(mInfo, "Chapters");
+        if (!isNaN(parseFloat(chapterCount))){
+            chapterCount = Math.floor(parseFloat(chapterCount));
+        }
+
         let volumeCount = this.getPreferredData(mInfo, "Volumes");
         let seriesTitle  = this.getPreferredData(mInfo, "Series");
         let altSeriesTitle = this.getPreferredData(mInfo, "Series", 1);
@@ -117,12 +121,6 @@ class Manga {
                 "Everyone": "All"
             };
 
-            let mylarChapterCount;
-            if (!isNaN(parseFloat(chapterCount))){
-                mylarChapterCount = Math.floor(parseFloat(chapterCount));
-            }
-            else mylarChapterCount = null;
-
             res["SeriesInfo"] = {
                 "metadata": {
                     "type": "comicSeries",
@@ -136,7 +134,7 @@ class Manga {
                     "comic_image": null,
                     "publisher": publisher || null,
                     "volume": volumeCount || null,
-                    "total_issues": mylarChapterCount || null,
+                    "total_issues": chapterCount || null,
                     "year": publishedYear || null,
                     "publication_run": publicationRun || null,
                     "age_rating": mylarAgeRating[ageRating] || null,
