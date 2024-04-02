@@ -100,7 +100,7 @@ class MangaDex {
             }
 
             if (response.total > response.limit + offset) {
-                offset += (response.data.limit - 0 || 100);
+                offset += (response.limit - 0 || 100);
                 moreResults = true;
             }
             else moreResults = false;
