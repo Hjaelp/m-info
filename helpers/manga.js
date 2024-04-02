@@ -114,26 +114,34 @@ class Manga {
                 "Adults Only 18+": "Adult",
                 "MA15+": "15+",
                 "Teen": "12+",
-                "Everyone": "All Ages"
+                "Everyone": "All"
             };
 
+            let mylarChapterCount;
+            if (!isNaN(parseFloat(chapterCount))){
+                mylarChapterCount = Math.floor(parseFloat(chapterCount));
+            }
+            else mylarChapterCount = null;
+
             res["SeriesInfo"] = {
-                "type": "comicSeries",
-                "imprint": null,
-                "comicid": null,
-                "name": seriesTitle,
-                "description_text": summary || null,
-                "description_formatted": null,
-                "booktype": "Print",
-                "collects": null,
-                "comic_image": null,
-                "publisher": publisher || null,
-                "volume": volumeCount || null,
-                "total_issues": chapterCount || null,
-                "year": publishedYear || null,
-                "publication_run": publicationRun || null,
-                "age_rating": mylarAgeRating[ageRating] || null,
-                "status": bookStatus || null
+                "metadata": {
+                    "type": "comicSeries",
+                    "imprint": null,
+                    "comicid": null,
+                    "name": seriesTitle,
+                    "description_text": summary || null,
+                    "description_formatted": null,
+                    "booktype": "Print",
+                    "collects": null,
+                    "comic_image": null,
+                    "publisher": publisher || null,
+                    "volume": volumeCount || null,
+                    "total_issues": mylarChapterCount || null,
+                    "year": publishedYear || null,
+                    "publication_run": publicationRun || null,
+                    "age_rating": mylarAgeRating[ageRating] || null,
+                    "status": bookStatus || null
+                }
             };
         }
 
