@@ -10,12 +10,13 @@ class Tagger {
         this.config = config;
         this.terminal = terminal;
         this.metadataProvider = new Manga(config);
-
-        this.progressBars = this.createAllProgressBars();
     }
 
     async updateBooks(dir, previewMode = false) {
         this.terminal.showUpdateScreen();
+
+        this.progressBars = this.createAllProgressBars();
+        this.progressBars["main"].show();
 
         this.terminal.appendTextBox("^G[Info]^ Searching for series in the base directory...");
         let AllSeriesDir = await archive.walkDirs(dir);
@@ -41,24 +42,25 @@ class Tagger {
                 this.terminal.appendTextBox("^GContinuing in 5 seconds...^\n^GPress ^BCTRL+R^ ^Gto return to Main Menu.^\n");
                 let res = await Promise.race([sleep(5000), this.terminal.waitForReturn()]);
                 if (res === "return") {
+                    this.destroyAllProgressBars();
                     return;
                 }
-                this.progressBars["provider"].hide();
-                this.progressBars["chapter"].hide();
-                this.progressBars["cover"].hide();
+                this.resetAllProgressBars();
             }
-
-            if (this.terminal.restartOnFree) return false;
         }
 
         this.terminal.appendTextBox("\n^GAll tasks are completed! Press ^BCTRL+R^ ^Gto return to Main Menu.^\n");
         await this.terminal.waitForReturn();
+
+        this.resetAllProgressBars();
     }
 
     async getSeriesInfo(seriesDir, previewMode) {
         this.terminal.appendTextBox(`^G[Info]^ Searching for ${seriesDir.seriesName}`);
 
         await sleep(1000);
+
+        this.progressBars["provider"].show();
 
         this.metadataProvider.setProviders();
         let seriesInfo = await this.metadataProvider.getInfo(seriesDir.seriesName, this.progressBars["provider"], previewMode);
@@ -75,6 +77,7 @@ class Tagger {
             }
             else {
                 this.progressBars["provider"].reset();
+                this.progressBars["provider"].show();
                 this.metadataProvider.setProviders(manualModeProviders);
                 seriesInfo = await this.metadataProvider.getInfo(seriesDir.seriesName, this.progressBars["provider"], false);
             }
@@ -93,6 +96,8 @@ class Tagger {
     }
 
     async getChaptersInfo(seriesDir, seriesInfo) {
+        this.progressBars["chapter"].show();
+
         this.terminal.appendTextBox(`^G[Info]^ Searching for ${seriesInfo["ComicInfo"].Series || seriesDir.seriesName} chapter metadata...`);
         let chaptersInfo = await this.metadataProvider.getChapters(seriesInfo.id, this.progressBars["chapter"]);
 
@@ -110,13 +115,13 @@ class Tagger {
             saveTasks.push("Saving series.json...");
         }
 
+        this.progressBars["main"].progress();
+
         if (!chaptersInfo) {
             this.progressBars["chapter"].setTasks([]);
         }
         else {
             this.terminal.appendTextBox(`^G[Info]^ Found ${Object.keys(chaptersInfo).length} chapters for ${seriesInfo["ComicInfo"].Series}.`);
-
-            this.progressBars["main"].progress();
 
             Object.keys(chaptersInfo).map((ch) =>
                 saveTasks.push(`Saving metadata for Chapter ${ch}.`)
@@ -156,13 +161,19 @@ class Tagger {
     }
 
     async getCovers(seriesDir, seriesInfo) {
+        let covers = null;
+
         if (this.config.SAVE_SERIES_COVER || this.config.SAVE_VOLUME_COVER) {
-            return await this.metadataProvider.getCovers(seriesInfo.id, this.progressBars["cover"]);
+            this.progressBars["cover"].show();
+            covers = await this.metadataProvider.getCovers(seriesInfo.id, this.progressBars["cover"]);
         }
         else {
             this.progressBars["cover"].setTasks([]);
             this.progressBars["cover"].progress();
         }
+
+        this.progressBars["main"].progress();
+        return covers;
     }
 
     async saveCovers(seriesDir, seriesInfo, coversInfo) {
@@ -253,6 +264,13 @@ class Tagger {
             "chapter": chapterProgressBar,
             "cover": coverProgressBar
         };
+    }
+
+    resetAllProgressBars() {
+        for (let pBar of Object.values(this.progressBars)) {
+            pBar.reset();
+            pBar.hide();
+        }
     }
 }
 

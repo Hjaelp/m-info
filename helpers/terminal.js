@@ -408,7 +408,8 @@ class ProgressBar {
             autoWidth: true,
             parent: parent,
             barChars: "classicWithHalf",
-            value: 10
+            value: 0,
+            hidden: true
         });
     }
     setTasks(tasks) {
@@ -437,6 +438,7 @@ class ProgressBar {
         this.currentTasks = this.allTasks;
         this.el.setValue(1 - (this.currentTasks.length ? 1 : 0));
         this.el.setContent(this.currentTasks[0] || "...");
+        this.hide();
     }
     hide() {
         return this.el.hide();
@@ -444,6 +446,10 @@ class ProgressBar {
 
     show() {
         return this.el.show();
+    }
+
+    destroy() {
+        return this.el.destroy();
     }
 }
 
