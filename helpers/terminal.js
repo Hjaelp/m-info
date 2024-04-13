@@ -11,6 +11,10 @@ class Terminal {
         this.document = this.term.createDocument();
         this.progressBars = {};
 
+        this.layout = null;
+        this.layouts = {};
+
+        this.setupLayouts();
         this.changeLayout("main");
 
         this.term.hideCursor();
@@ -35,7 +39,7 @@ class Terminal {
         ];
 
         let colMenu = new termkit.ColumnMenu({
-            parent: this.document.elements.body,
+            parent: this.document.elements[this.layout.body],
             y: 0,
             autoWidth: true,
             autoHeight: true,
@@ -44,20 +48,8 @@ class Terminal {
 
         this.setFocus(colMenu);
 
-        /*let textbox = new termkit.TextBox({
-            parent: this.document.elements.body,
-            content: util.inspect(this.document.elements.header),
-            scrollable: true,
-            vScrollBar: true,
-            autoWidth: true,
-            autoHeight: true,
-            //hScrollBar: true ,
-            //lineWrap: true ,
-            wordWrap: true,
-        });*/
-
         let resp = await colMenu.waitFor("submit");
-        this.document.elements.body.clear();
+        this.document.elements[this.layout.body].clear();
 
         let updateModeResp = resp;
         if (updateModeResp === "exit") return this.terminate();
@@ -81,7 +73,7 @@ class Terminal {
         ];
 
         let colMenu = new termkit.ColumnMenu({
-            parent: this.document.elements.body,
+            parent: this.document.elements[this.layout.body],
             y: 2,
             autoWidth: true,
             autoHeight: true,
@@ -91,7 +83,7 @@ class Terminal {
         this.setFocus(colMenu);
 
         let resp = await colMenu.waitFor("submit");
-        this.document.elements.body.clear();
+        this.document.elements[this.layout.body].clear();
 
         return resp;
     }
@@ -106,7 +98,7 @@ class Terminal {
         });
 
         let colMenu = new termkit.ColumnMenu({
-            parent: this.document.elements.body,
+            parent: this.document.elements[this.layout.body],
             y: 3,
             autoWidth: true,
             autoHeight: true,
@@ -124,7 +116,7 @@ class Terminal {
         this.setFocus(colMenu);
 
         let resp = await colMenu.waitFor("submit");
-        this.document.elements.body.clear();
+        this.document.elements[this.layout.body].clear();
 
         if (!resp || resp === "mainmenu") {
             return false;
@@ -138,7 +130,7 @@ class Terminal {
     async showUpdateScreen() {
         this.changeLayout("metadata");
         let textBox = new termkit.TextBox({
-            parent: this.document.elements.body,
+            parent: this.document.elements[this.layout.body],
             id: "logBox",
             content: "",
             contentHasMarkup: true,
@@ -161,7 +153,7 @@ class Terminal {
         let buttons = {};
 
         let formContainer = new termkit.Container({
-            parent: this.document.elements.body,
+            parent: this.document.elements[this.layout.body],
             autoWidth: true,
             autoHeight: true
         });
@@ -241,7 +233,7 @@ class Terminal {
 
     createText(text, y) {
         new termkit.Text({
-            parent: this.document.elements.body,
+            parent: this.document.elements[this.layout.body],
             y: y || 0,
             content: text,
             attr: { color: "cyan", bold: true }
@@ -249,19 +241,19 @@ class Terminal {
     }
 
     createProgressBar(opt) {
-        let progressBar = new ProgressBar(opt, this.term, this.document.elements.footer);
+        let progressBar = new ProgressBar(opt, this.term, this.document.elements[this.layouts["metadata"].footer]);
         this.progressBars[opt.type] = progressBar;
 
         return progressBar;
     }
 
-    changeLayout(id) {
-        this.activeEl = null;
-        this.term.clear();
-        this.document.clear();
-
-        if (id === "main") {
-            this.layout = new termkit.Layout({
+    setupLayouts() {
+        this.layouts["main"] = {
+            "id": "main",
+            "header": "header_main",
+            "body": "body_main",
+            "footer": "",
+            "el": new termkit.Layout({
                 parent: this.document,
                 boxChars: "double",
                 layout: {
@@ -271,19 +263,24 @@ class Terminal {
                     heightPercent: 100,
                     rows: [
                         {
-                            id: "header",
+                            id: "header_main",
                             height: 3
                         },
                         {
-                            id: "body",
+                            id: "body_main",
                         }
                     ]
-                }
-            });
-            this.setHeader("Welcome to m-info!");
-        }
-        else if (id === "metadata") {
-            this.layout = new termkit.Layout({
+                },
+                hidden: true
+            })
+        };
+
+        this.layouts["metadata"] = {
+            "id": "metadata",
+            "header": "header_metadata",
+            "body": "body_metadata",
+            "footer": "footer_metadata",
+            "el": new termkit.Layout({
                 parent: this.document,
                 boxChars: "double",
                 layout: {
@@ -293,34 +290,55 @@ class Terminal {
                     heightPercent: 100,
                     rows: [
                         {
-                            id: "header",
+                            id: "header_metadata",
                             height: 3
                         },
                         {
-                            id: "body",
+                            id: "body_metadata",
                         },
                         {
-                            id: "footer",
+                            id: "footer_metadata",
                             height: 6
                         }
                     ]
-                }
-            });
-            this.setHeader("Welcome to m-info!");
+                },
+                hidden: true
+            })
+        };
+    }
+
+    changeLayout(id) {
+        this.activeEl = null;
+        this.term.clear();
+
+        if (this.layout && this.layout.id) {
+            this.layouts[this.layout.id].el.hide();
         }
+
+        this.layout = this.layouts[id];
+        this.layout.el.show();
+
+        this.setHeader("Welcome to m-info!");
     }
 
     setHeader(text) {
-        this.document.elements.header.clear();
-        new termkit.Text({
-            id: "header_text",
-            parent: this.document.elements.header,
-            content: text,
-            autoWidth: true,
-            autoHeight: true,
-            x: Math.ceil((this.term.width / 2) - (text.length / 2)),
-            attr: { color: "cyan", bold: true }
-        });
+        let headers = Object.values(this.layouts).map((layout) => layout.header);
+
+        for (let header of headers) {
+            let parent = this.document.elements[this.layout.header];
+            if (!parent) continue;
+
+            parent.clear();
+            new termkit.Text({
+                id: `${header}_text`,
+                parent: parent,
+                content: text,
+                autoWidth: true,
+                autoHeight: true,
+                x: Math.ceil((this.term.width / 2) - (text.length / 2)),
+                attr: { color: "cyan", bold: true }
+            });
+        }
     }
 
     setNextTask(id) {
@@ -347,7 +365,7 @@ class Terminal {
         }
     }
 
-    waitForReturn(){
+    waitForReturn() {
         let self = this;
         return new Promise(function (resolve, reject) {
             let cb = function (key) {
@@ -422,6 +440,10 @@ class ProgressBar {
     }
     hide() {
         return this.el.hide();
+    }
+
+    show() {
+        return this.el.show();
     }
 }
 
