@@ -1,8 +1,7 @@
 class MangaUpdates {
     static async getMangaId(req, seriesName) {
         let response = await req.post("https://api.mangaupdates.com/v1/series/search", { "search": seriesName, "orderby": "score" }).catch(function (err) {
-            console.error("getMangaId() ERR:", err);
-            return false;
+            throw new Error("getMangaId() ERR: " + err.message);
         });
 
         response = response.data;
@@ -18,8 +17,7 @@ class MangaUpdates {
         if (!seriesID) return false;
 
         let response = await req.get(`https://api.mangaupdates.com/v1/series/${seriesID}`).catch(function (err) {
-            console.error("getMangaInfo() ERR:", err);
-            return false;
+            throw new Error("getInfo() ERR: " + err.message);
         });
 
         response = response.data;
@@ -67,7 +65,7 @@ class MangaUpdates {
         let response = null;
 
         response = await req.get(`https://api.mangaupdates.com/v1/series/${seriesID}`).catch(function (err) {
-            console.error("getMangaCover() ERR:", err);
+            throw new Error("getCovers() ERR: " + err.message);
         });
 
         response = response?.data;
@@ -88,7 +86,7 @@ class MangaUpdates {
             "url": url,
             "responseType": "stream"
         }).catch((err) => {
-            console.error("getMangaCover() Err:", err);
+            throw new Error("getCoverStream() ERR: " + err.message);
         });
 
         if (!response || !response.data) return null;

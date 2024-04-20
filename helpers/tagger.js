@@ -1,5 +1,6 @@
 const Manga = require("./manga.js");
 const archive = require("./archive.js");
+const logger = require("./logger.js");
 
 const sleep = function (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -18,7 +19,8 @@ class Tagger {
         this.progressBars = this.createAllProgressBars();
         this.progressBars["main"].show();
 
-        this.terminal.appendTextBox("^G[Info]^ Searching for series in the base directory...");
+        logger.info("Searching for series in the base directory...");
+
         let AllSeriesDir = await archive.walkDirs(dir);
 
         let i = 0;
@@ -35,11 +37,11 @@ class Tagger {
             let coversInfo = await this.getCovers(seriesDir, seriesInfo);
             await this.saveCovers(seriesDir, seriesInfo, coversInfo);
 
-            this.terminal.appendTextBox(`\n^GDone updating ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}!^\n`);
+            logger.log(`\n^GDone updating ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}!^\n`);
 
             i++;
             if (i < totalSeries) {
-                this.terminal.appendTextBox("^GContinuing in 5 seconds...^\n^GPress ^BCTRL+R^ ^Gto return to Main Menu.^\n");
+                logger.log("^GContinuing in 5 seconds...^\n^GPress ^BCTRL+R^ ^Gto return to Main Menu.^\n");
                 let res = await Promise.race([sleep(5000), this.terminal.waitForReturn()]);
                 if (res === "return") {
                     this.destroyAllProgressBars();
@@ -49,14 +51,14 @@ class Tagger {
             }
         }
 
-        this.terminal.appendTextBox("\n^GAll tasks are completed! Press ^BCTRL+R^ ^Gto return to Main Menu.^\n");
+        logger.log("\n^GAll tasks are completed! Press ^BCTRL+R^ ^Gto return to Main Menu.^\n");
         await this.terminal.waitForReturn();
 
         this.resetAllProgressBars();
     }
 
     async getSeriesInfo(seriesDir, previewMode) {
-        this.terminal.appendTextBox(`^G[Info]^ Searching for ${seriesDir.seriesName}`);
+        logger.info(`Searching for ${seriesDir.seriesName}`);
 
         await sleep(1000);
 
@@ -72,7 +74,7 @@ class Tagger {
                 return false;
             }
             else if (!manualModeProviders.length) {
-                this.terminal.appendTextBox(`^Y[Warn]^ No metadata providers for ${seriesDir.seriesName} have been selected. Skipping series.`);
+                logger.warn(`No metadata providers for ${seriesDir.seriesName} have been selected. Skipping series.`);
                 return false;
             }
             else {
@@ -84,11 +86,11 @@ class Tagger {
         }
 
         if (!seriesInfo || !Object.keys(seriesInfo).length) {
-            this.terminal.appendTextBox(`^Y[Warn]^ Could not find any results for ${seriesDir.seriesName}. Skipping`);
+            logger.warn(`Could not find any results for ${seriesDir.seriesName}. Skipping`);
             return false;
         }
 
-        this.terminal.appendTextBox(`^G[Info]^ Found Series ${seriesInfo["ComicInfo"].Series || seriesDir.seriesName}.`);
+        logger.info(`Found Series ${seriesInfo["ComicInfo"].Series || seriesDir.seriesName}.`);
 
         this.progressBars["main"].progress();
 
@@ -98,11 +100,12 @@ class Tagger {
     async getChaptersInfo(seriesDir, seriesInfo) {
         this.progressBars["chapter"].show();
 
-        this.terminal.appendTextBox(`^G[Info]^ Searching for ${seriesInfo["ComicInfo"].Series || seriesDir.seriesName} chapter metadata...`);
+        logger.info(`Searching for ${seriesInfo["ComicInfo"].Series || seriesDir.seriesName} chapter metadata...`);
+
         let chaptersInfo = await this.metadataProvider.getChapters(seriesInfo.id, this.progressBars["chapter"]);
 
         if (!chaptersInfo) {
-            this.terminal.appendTextBox(`^Y[Warn]^ Could not find any chapter results for ${seriesInfo["ComicInfo"].Series}. Skipping.`);
+            logger.warn(`Could not find any chapter results for ${seriesInfo["ComicInfo"].Series}. Skipping.`);
         }
 
         return chaptersInfo;
@@ -121,7 +124,7 @@ class Tagger {
             this.progressBars["chapter"].setTasks([]);
         }
         else {
-            this.terminal.appendTextBox(`^G[Info]^ Found ${Object.keys(chaptersInfo).length} chapters for ${seriesInfo["ComicInfo"].Series}.`);
+            logger.info(`Found ${Object.keys(chaptersInfo).length} chapters for ${seriesInfo["ComicInfo"].Series}.`);
 
             Object.keys(chaptersInfo).map((ch) =>
                 saveTasks.push(`Saving metadata for Chapter ${ch}.`)
@@ -132,7 +135,7 @@ class Tagger {
             for (let [chapter, chMetadata] of Object.entries(chaptersInfo)) {
                 let chapterPath = seriesDir["archives"][chapter]?.path;
                 if (!chapterPath) {
-                    this.terminal.appendTextBox(`^Y[Warn]^ Could not find the directory/archive for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName} - Chapter ${chapter}. Skipping.`);
+                    logger.warn(`Could not find the directory/archive for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName} - Chapter ${chapter}. Skipping.`);
                     this.progressBars["chapter"].progress();
                     continue;
                 }
@@ -148,13 +151,13 @@ class Tagger {
                 this.progressBars["chapter"].progress();
             }
 
-            this.terminal.appendTextBox(`^G[Info]^ Done updating chapter metadata for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
+            logger.info(`Done updating chapter metadata for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
         }
 
         if (this.config.CREATE_SERIES_JSON) {
             await archive.saveSeriesJSON(seriesInfo["SeriesInfo"], seriesDir.path);
             this.progressBars["chapter"].progress();
-            this.terminal.appendTextBox(`^G[Info]^ Done saving series.json file for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
+            logger.info(`Done saving series.json file for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
         }
 
         this.progressBars["main"].progress();
@@ -179,7 +182,7 @@ class Tagger {
     async saveCovers(seriesDir, seriesInfo, coversInfo) {
         if (this.config.SAVE_SERIES_COVER || this.config.SAVE_VOLUME_COVER) {
             if (!coversInfo || !Object.keys(coversInfo).length) {
-                this.terminal.appendTextBox(`^Y[Warn]^ Could not find any cover results for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}. Skipping.`);
+                logger.warn(`Could not find any cover results for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}. Skipping.`);
                 this.progressBars["cover"].setTasks([]);
                 this.progressBars["cover"].progress();
             }
@@ -220,7 +223,7 @@ class Tagger {
                         this.progressBars["cover"].progress();
                     }
                 }
-                this.terminal.appendTextBox(`^G[Info]^ Done Updating Covers for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
+                logger.info(`Done Updating Covers for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
             }
         }
         this.progressBars["main"].progress();

@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const JSZip = require("jszip");
+const logger = require("./logger.js");
 const parser = new (require("./parser.js"));
 
 class Archive {
@@ -63,7 +64,7 @@ class Archive {
         return new JSZip.external.Promise(function (resolve, reject) {
             fs.readFile(filePath, function (err, data) {
                 if (err) {
-                    console.log("readZip() ERR:", err);
+                    logger.error(`readZip() ERR: ${err.message}`);
                     reject(err);
                 } else {
                     resolve(data);
@@ -99,7 +100,7 @@ class Archive {
                 });
             }
             catch (err) {
-                console.log("getComicMetadata() ERR:", err, filePath);
+                logger.error(`getComicMetadata() ERR: ${err.message}`);
                 return false;
             }
         }
@@ -116,7 +117,7 @@ class Archive {
                 if ([".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif"].indexOf(ext) > -1 && !/^cover/i.test(fn)) return true;
                 else return false;
             });
-            console.log(`Found ${pages.length} pages in ${path.dirname(filePath)}`);
+            logger.verbose(`Found ${pages.length} pages in ${path.dirname(filePath)}`);
             resp.metadata.pages = pages.length;
         }
 
@@ -131,7 +132,7 @@ class Archive {
         if (isZip) {
             await this.readZip(filePath).then(async (zipData) => {
                 zipData.file("ComicInfo.xml", xml);
-                
+
                 let dir, fn, tmpFn;
                 if (useTemp) {
                     dir = path.dirname(filePath);
@@ -141,14 +142,15 @@ class Archive {
                 }
                 await zipData.generateNodeStream({ type: "nodebuffer" })
                     .pipe(fs.createWriteStream(filePath))
-                    .on("finish", async () => { 
+                    .on("finish", async () => {
                         if (useTemp) {
                             await fs.promises.unlink(path.join(dir, fn));
                             await fs.promises.rename(path.join(dir, tmpFn), path.join(dir, fn));
                         }
+                        logger.verbose(`${filePath} updated successfully.`);
                     });
             }).catch((err) => {
-                console.log("saveComicMetadata() ERR:", err, filePath);
+                logger.error(`saveComicMetadata() ERR: ${err.message}`);
             });
         }
         else return await fs.promises.writeFile(path, xml);
@@ -177,11 +179,11 @@ class Archive {
 
         return new Promise((resolve, reject) => {
             writer.on("finish", () => {
-                //console.log('Image saved successfully');
+                logger.verbose(`${coverPath} saved successfully.`);
                 resolve();
             }).on("error", (err) => {
-                console.error("Error saving image", coverPath, err);
-                reject(err);
+                logger.error(`Error saving image ${coverPath}, Error: ${err.message}`);
+                resolve(false);
             });
         });
     }

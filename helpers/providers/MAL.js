@@ -1,8 +1,7 @@
 class MAL {
     static async getInfo(req, seriesName) {
         let response = await req.get(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(seriesName)}&limit=1`).catch(function (err) {
-            console.error("getMangaInfo() ERR:", err);
-            return false;
+            throw new Error("getInfo() ERR: " + err.message);
         });
 
         response = response.data;
@@ -91,7 +90,7 @@ class MAL {
         let results = null;
 
         response = await req.get(`https://api.jikan.moe/v4/manga/${seriesID}/pictures`).catch(function (err) {
-            console.error("getMangaCover() ERR:", err);
+            throw new Error("getCovers() ERR: " + err.message);
         });
 
         response = response?.data;
@@ -112,7 +111,7 @@ class MAL {
             "url": url,
             "responseType": "stream"
         }).catch((err) => {
-            console.error("getMangaCover() Err:", err);
+            throw new Error("getCoverStream() ERR: " + err.message);
         });
 
         if (!response || !response.data) return null;

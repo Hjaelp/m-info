@@ -1,8 +1,9 @@
 class MangaDex {
     static async getInfo(req, seriesName) {
-        let response = await req.get(`https://api.mangadex.org/manga?title=${encodeURIComponent(seriesName)}&order%5Brelevance%5D=desc&includes[]=author&includes[]=artist&includes[]=cover_art&limit=1`).catch(function (err) {
-            console.error("getMangaInfo() ERR:", err);
-            return false;
+        let response = await req.get(
+            `https://api.mangadex.org/manga?title=${encodeURIComponent(seriesName)}&order%5Brelevance%5D=desc&includes[]=author&includes[]=artist&includes[]=cover_art&limit=1`
+        ).catch(function (err) {
+            throw new Error("getInfo() ERR: " + err.message);
         });
 
         response = response.data;
@@ -59,7 +60,7 @@ class MangaDex {
 
         do {
             response = await req.get(`https://api.mangadex.org/manga/${seriesID}/feed?${acceptableLanguages.join("&")}&limit=100&offset=${offset}`).catch(function (err) {
-                console.error("getMangaChapters() ERR:", err);
+                throw new Error("getChapters() ERR: " + err.message);
             });
 
             response = response.data;
@@ -117,7 +118,7 @@ class MangaDex {
 
         do {
             response = await req.get(`https://api.mangadex.org/cover?manga%5B%5D=${seriesID}&limit=100&offset=${offset}&order%5Bvolume%5D=asc`).catch(function (err) {
-                console.error("getMangaCover() ERR:", err);
+                throw new Error("getCovers() ERR: " + err.message);
             });
 
             response = response?.data;
@@ -149,7 +150,7 @@ class MangaDex {
             "url": `https://uploads.mangadex.org/covers/${seriesID}/${filename}`,
             "responseType": "stream"
         }).catch((err) => {
-            console.error("getMangaCover() Err:", err);
+            throw new Error("getCoverStream() ERR: " + err.message);
         });
 
         if (!response || !response.data) return null;

@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require("./logger.js");
 const { Agent } = require("https");
 
 class Manga {
@@ -17,7 +18,7 @@ class Manga {
                 this.availableProviders[provider] = require(`./providers/${provider}.js`);
             }
             catch (e) {
-                console.log(`Error loading provider ${provider}`, e);
+                logger.err(`Error loading provider ${provider}, Error: ${e.message}`);
             }
         }
     }
@@ -45,11 +46,15 @@ class Manga {
         progressBar.setTasks(progressItems);
 
         for (let provider of providerNames) {
-            let resp = await this.selectedProviders[provider].getInfo(this.apiInstance, seriesName);
-            if (resp) mInfo[provider] = resp;
-            if (resp.id) mIds[provider] = resp.id;
-
-            progressBar.progress();
+            await this.selectedProviders[provider].getInfo(this.apiInstance, seriesName)
+                .then((resp) => {
+                    if (resp) mInfo[provider] = resp;
+                    if (resp.id) mIds[provider] = resp.id;
+                })
+                .catch((err) => {
+                    logger.error(`${provider} - ${err}`);
+                })
+                .finally(() => progressBar.progress());
         }
 
         if (!Object.keys(mInfo).length) {
@@ -70,12 +75,12 @@ class Manga {
         }
 
         let chapterCount = this.getPreferredData(mInfo, "Chapters");
-        if (!isNaN(parseFloat(chapterCount))){
+        if (!isNaN(parseFloat(chapterCount))) {
             chapterCount = Math.floor(parseFloat(chapterCount));
         }
 
         let volumeCount = this.getPreferredData(mInfo, "Volumes");
-        let seriesTitle  = this.getPreferredData(mInfo, "Series");
+        let seriesTitle = this.getPreferredData(mInfo, "Series");
         let altSeriesTitle = this.getPreferredData(mInfo, "Series", 1);
         let summary = this.getPreferredData(mInfo, "Summary");
         let author = this.getPreferredData(mInfo, "Author");
@@ -161,14 +166,22 @@ class Manga {
                 continue;
             }
 
-            let resp = await this.selectedProviders[provider].getChapters(this.apiInstance, seriesID[provider], acceptableLanguages);
+            let resp = {};
 
-            for (let chapter of Object.keys(resp)) {
-                resp[chapter] = this.getPreferredLang(resp[chapter], "chapterDetails") || {};
+            await this.selectedProviders[provider].getChapters(this.apiInstance, seriesID[provider], acceptableLanguages)
+                .then((resp) => {
+                    for (let chapter of Object.keys(resp)) {
+                        resp[chapter] = this.getPreferredLang(resp[chapter], "chapterDetails") || {};
+                    }
+                })
+                .catch((err) => {
+                    logger.error(`${provider} - ${err}`);
+                })
+                .finally(() => progressBar.progress());
+
+            if (Object.keys(resp)) {
+                return resp;
             }
-
-            progressBar.progress();
-            if (resp) return resp;
         }
     }
 
@@ -181,22 +194,41 @@ class Manga {
         progressBar.setTasks(progressItems);
 
         for (let provider of providers) {
-            if (!this.selectedProviders[provider]) continue;
+            if (!seriesID[provider] || !this.selectedProviders[provider]) continue;
 
-            let resp = await this.selectedProviders[provider].getCovers(this.apiInstance, seriesID[provider]);
-            progressBar.progress();
+            let mCovers = {};
+            await this.selectedProviders[provider].getCovers(this.apiInstance, seriesID[provider])
+                .then((resp) => {
+                    mCovers = resp;
+                })
+                .catch((err) => {
+                    logger.error(`${provider} - ${err}`);
+                })
+                .finally(() => progressBar.progress());
 
-            if (resp) return resp; //mCovers[provider] = resp;
+            if (mCovers && Object.keys(mCovers)) {
+                return mCovers;
+            }
         }
     }
 
     async getCoverStream(seriesID, filename) {
         let providers = this.config["METADATA_PREFERENCE"]["Cover"] || this.config["METADATA_PREFERENCE"]["default"];
         for (let provider of providers) {
-            if (!this.selectedProviders[provider]) continue;
+            if (!seriesID[provider] || !this.selectedProviders[provider]) continue;
 
-            let resp = await this.selectedProviders[provider].getCoverStream(this.apiInstance, seriesID[provider], filename);
-            if (resp) return resp;
+            let stream = null;
+            await this.selectedProviders[provider].getCoverStream(this.apiInstance, seriesID[provider], filename)
+                .then((resp) => {
+                    stream = resp;
+                })
+                .catch((err) => {
+                    logger.error(`${provider} - ${err}`);
+                });
+
+            if (stream) {
+                return stream;
+            }
         }
     }
 

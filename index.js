@@ -17,6 +17,10 @@ const { getDirs } = require("./helpers/archive.js");
 const terminal = new Terminal(config);
 const tagger = new Tagger(config, terminal);
 
+const logger = require("./helpers/logger.js");
+logger.setTerminal(terminal);
+logger.setLogLevel(config.LOG_LEVEL);
+
 async function start() {
     while (true) {
         await mainMenu();
