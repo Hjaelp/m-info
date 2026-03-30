@@ -1,7 +1,7 @@
 class MangaDex {
     static async getInfo(req, seriesName) {
         let response = await req.get(
-            `https://api.mangadex.org/manga?title=${encodeURIComponent(seriesName)}&order%5Brelevance%5D=desc&includes[]=author&includes[]=artist&includes[]=cover_art&limit=1`
+            `https://api.mangadex.org/manga?title=${encodeURIComponent(seriesName)}&includes[]=author&includes[]=artist&includes[]=cover_art&limit=1`
         ).catch(function (err) {
             throw new Error("getInfo() ERR: " + err.message);
         });
