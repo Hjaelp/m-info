@@ -12,8 +12,8 @@ class Parser {
         let volume = "";
         let chapter = "";
 
-        const volRegex = /[\s_-]v[a-z,._]*[\s0]*(?<volume>\d+)/i;
-        const chapterRegex = /[\s_-]ch[a-z,._]*[\s0]*(?<chapter>[\d.\-x]+)/i;
+        const volRegex = /[\s_\-\(]v(?:o(?:lume)?)?[,._]*[\s0]*(?<volume>\d+)/i;
+        const chapterRegex = /[\s_\-\(]c(?:h?|(?:apter)?)[,._]*[\s0]*(?<chapter>[\d.\-x]+)/i;
 
         volume = volRegex.exec(filename)?.[1] || "0";
         chapter = chapterRegex.exec(filename)?.[1] || "0";
