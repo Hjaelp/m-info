@@ -241,7 +241,7 @@ class Tagger {
         logger.info("Checking for volumes to split into chapters...");
         logger.verbose(`seriesPath: ${seriesPath}`);
 
-        const seriesName = path.basename(seriesPath);
+        const seriesName = seriesInfo["ComicInfo"].Series || seriesInfo.seriesName || path.basename(seriesPath);
         const ents = await fs.promises.readdir(seriesPath, { withFileTypes: true });
         
         logger.verbose(`Found ${ents.length} entries in series directory`);
