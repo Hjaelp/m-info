@@ -37,6 +37,8 @@ const config = {
     SAVE_VOLUME_COVER: true, // Save every volume cover.
 
     CREATE_SERIES_JSON: true, // Save mylar-style series.json file.
+	
+    SPLIT_VOLUMES_INTO_CHAPTERS: false, // true: split volumes into separate chapter files based on filename of the images
 };
 
 module.exports = config;

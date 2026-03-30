@@ -1,6 +1,9 @@
 const Manga = require("./manga.js");
 const archive = require("./archive.js");
 const logger = require("./logger.js");
+const fs = require("fs");
+const path = require("path");
+const parser = new (require("./parser.js"));
 
 const sleep = function (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -36,6 +39,7 @@ class Tagger {
 
             let coversInfo = await this.getCovers(seriesDir, seriesInfo);
             await this.saveCovers(seriesDir, seriesInfo, coversInfo);
+            await this.splitVolumeArchives(seriesDir.path, seriesInfo, chaptersInfo);
 
             logger.log(`\n^GDone updating ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}!^\n`);
 
@@ -227,6 +231,79 @@ class Tagger {
             }
         }
         this.progressBars["main"].progress();
+    }
+
+    async splitVolumeArchives(seriesPath, seriesInfo, chaptersInfo) {
+        if (!this.config.SPLIT_VOLUMES_INTO_CHAPTERS) {
+            return;
+        }
+
+        logger.info("Checking for volumes to split into chapters...");
+        logger.verbose(`seriesPath: ${seriesPath}`);
+
+        const seriesName = path.basename(seriesPath);
+        const ents = await fs.promises.readdir(seriesPath, { withFileTypes: true });
+        
+        logger.verbose(`Found ${ents.length} entries in series directory`);
+        
+        let archiveFiles = 0;
+        for (let ent of ents) {
+            if (ent.isDirectory()) continue;
+            
+            const extension = path.extname(ent.name);
+            if ([".cbz", ".zip"].indexOf(extension.toLowerCase()) > -1) {
+                archiveFiles++;
+            }
+        }
+        
+        logger.verbose(`Found ${archiveFiles} archive files`);
+        
+        for (let ent of ents) {
+            if (ent.isDirectory()) continue;
+            
+            const entPath = path.resolve(seriesPath, ent.name);
+            const extension = path.extname(ent.name);
+            
+            if ([".cbz", ".zip"].indexOf(extension.toLowerCase()) === -1) {
+                logger.verbose(`Skipping non-archive: ${ent.name}`);
+                continue;
+            }
+            
+            const filename = path.parse(ent.name).name;
+            logger.verbose(`Processing: ${filename}`);
+            
+            const hasChapter = /(ch?(apter)?)[\s._-]*[\d]/i.test(filename);
+                        
+            if (!hasChapter) {
+                logger.info(`Splitting volume file: ${filename}`);
+                const createdFiles = await archive.splitVolumeIntoChapters(entPath, seriesName);
+                if (createdFiles && createdFiles.length > 0) {
+                    logger.info(`Split volume into ${createdFiles.length} chapter files`);
+                    
+                    for (const createdFile of createdFiles) {
+                        const createdFilePath = createdFile.path;
+                        const createdFilename = path.basename(createdFilePath, path.extname(createdFilePath));
+                        const parsed = parser.parseFilename(createdFilename, seriesName);
+                        const chapter = parsed.chapter;
+                        const chMetadata = chaptersInfo?.[chapter];
+                        const origMetadata = {};
+                        const splitMetadata = {
+                            "Volume": createdFile.volume,
+                            "Chapter": createdFile.chapter,
+                            "Pages": createdFile.pages
+                        };
+                        const fullMetadata = this.metadataProvider.mergeComicInfo(
+                            origMetadata,
+                            seriesInfo || {},
+                            { ...(chMetadata || {}), ...splitMetadata },
+                            { "Notes": "Metadata saved using m-info.js" }
+                        );
+                        await archive.saveComicMetadata(fullMetadata, createdFilePath, this.config.USE_TEMPORARY_FILES);
+                        logger.verbose(`Saved metadata for ${createdFilename}`);
+                    }
+                }
+            }
+        }
     }
 
     createAllProgressBars() {

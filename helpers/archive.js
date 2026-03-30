@@ -187,6 +187,102 @@ class Archive {
             });
         });
     }
+
+    static async splitVolumeIntoChapters(volumePath, seriesName) {
+        const volumeDir = path.dirname(volumePath);
+        const volumeBasename = path.basename(volumePath, path.extname(volumePath));
+        
+        logger.verbose(`splitVolumeIntoChapters: processing ${volumePath}`);
+        logger.verbose(`volumeDir: ${volumeDir}, volumeBasename: ${volumeBasename}`);
+
+        const parsedFilename = parser.parseFilename(volumeBasename, seriesName);
+        const volume = parsedFilename.volume || "1";
+        logger.verbose(`Parsed volume: ${volume}`);
+
+        let zipData;
+        try {
+            zipData = await this.readZip(volumePath);
+        } catch (err) {
+            logger.error(`Failed to read ZIP file: ${err.message}`);
+            return null;
+        }
+
+        const zipEntries = Object.keys(zipData.files);
+        const subdirs = [...new Set(
+            zipEntries
+                .filter(f => f.endsWith('/'))
+                .map(f => f.split('/')[0])
+                .filter(d => d && d !== '')
+        )];
+
+        const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+        const imageFiles = zipEntries.filter(f => {
+            if (f.endsWith('/')) return false;
+            const ext = path.extname(f).toLowerCase();
+            return imageExts.includes(ext);
+        });
+
+        logger.verbose(`Found ${imageFiles.length} image files in ZIP`);
+
+        if (imageFiles.length === 0) {
+            logger.verbose("No image files found in ZIP, returning null");
+            return null;
+        }
+
+        const chapters = {};
+
+        for (const fn of imageFiles) {
+            const filename = path.basename(fn, path.extname(fn));
+            const parsed = parser.parseFilename(filename, seriesName);
+            const chapter = parsed.chapter || "999";
+            const chapterVolume = parsed.volume || volume;
+            logger.verbose(`File ${filename} -> chapter ${chapter}, volume ${chapterVolume}`);
+            if (!chapters[chapter]) {
+                chapters[chapter] = { c: chapter, v: chapterVolume, p: [] };
+            }
+            chapters[chapter].p.push(fn);
+        }
+
+        logger.verbose(`Found ${Object.keys(chapters).length} chapters: ${Object.keys(chapters).join(", ")}`);
+
+        const createdFiles = [];
+        
+        for (const [chapter, chapterData] of Object.entries(chapters)) {
+            const paddedChapter = chapter.padStart(4, '0').replace(/\./g, '.');
+            const paddedVolume = chapterData.v.padStart(2, '0');
+            const chapterNumPart = chapter.match(/\D.*/)?.[0] || '';
+            const chapterPadLen = (chapterNumPart?.length || 0) + 4;
+            const paddedChapterNum = chapter.padStart(chapterPadLen, '0');
+            
+            const outputName = `${seriesName} - Vol.${paddedVolume} Ch.${paddedChapterNum}.cbz`;
+            const outputPath = path.join(volumeDir, outputName);
+
+            const zip = new JSZip();
+            
+            let i = 1;
+            for (const zipPath of chapterData.p) {
+                const ext = path.extname(zipPath);
+                const newName = `${(i++).toString().padStart(3, '0')}${ext}`;
+                const imgData = await zipData.files[zipPath].async("nodebuffer");
+                zip.file(newName, imgData);
+            }
+
+            const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+            await fs.promises.writeFile(outputPath, zipBuffer);
+            
+            const chapterDetails = {
+                path: outputPath,
+                volume: chapterData.v,
+                chapter: chapter,
+                pages: chapterData.p.length
+            };
+            createdFiles.push(chapterDetails);
+            
+            logger.info(`Created chapter file: ${outputName}`);
+        }
+
+        return createdFiles;
+    }
 }
 
 module.exports = Archive;
