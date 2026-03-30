@@ -169,10 +169,11 @@ class Manga {
             let resp = {};
 
             await this.selectedProviders[provider].getChapters(this.apiInstance, seriesID[provider], acceptableLanguages)
-                .then((resp) => {
-                    for (let chapter of Object.keys(resp)) {
-                        resp[chapter] = this.getPreferredLang(resp[chapter], "chapterDetails") || {};
+                .then((r) => {
+                    for (let chapter of Object.keys(r)) {
+                        resp[chapter] = this.getPreferredLang(r[chapter], "chapterDetails") || {};
                     }
+					
                 })
                 .catch((err) => {
                     logger.error(`${provider} - ${err}`);
