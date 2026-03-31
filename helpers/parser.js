@@ -12,14 +12,14 @@ class Parser {
         let volume = "";
         let chapter = "";
 
-        const volRegex = /[\s_\-\(]v(?:o(?:lume)?)?[,._]*[\s0]*(?<volume>\d+)/i;
-        const chapterRegex = /[\s_\-\(]c(?:h?|(?:apter)?)[,._]*[\s0]*(?<chapter>[\d.\-x]+)/i;
+        const volRegex = /[\s_\-\(]v(?:o(?:lume)?)?[,._]*[\s0]*(?<volume>[\d.\-x#]+)/i;
+        const chapterRegex = /[\s_\-\(]c(?:h?|(?:apter)?)[,._]*[\s0]*(?<chapter>[\d.\-x#]+)/i;
 
         volume = volRegex.exec(filename)?.[1] || "0";
         chapter = chapterRegex.exec(filename)?.[1] || "0";
 
-        //if (volume.match(/^[\d.]+$/)) volume = parseFloat(volume);
-        //if (chapter.match(/^[\d.]+$/)) chapter = parseFloat(chapter);
+        volume = volume.replace(/[^\d]+/g, '.')
+        chapter = chapter.replace(/[^\d]+/g, '.')
 
         return {
             series: seriesName,
