@@ -131,10 +131,14 @@ class Archive {
 
         let targetPath = filePath;
         if (outputDir && baseDir) {
-            const relativePath = path.relative(baseDir, filePath);
-            targetPath = path.join(outputDir, relativePath);
-            const targetDir = path.dirname(targetPath);
-            await fs.promises.mkdir(targetDir, { recursive: true });
+            const fileDir = path.dirname(filePath);
+            const isInOutputDir = fileDir.startsWith(outputDir);
+            if (!isInOutputDir) {
+                const relativePath = path.relative(baseDir, filePath);
+                targetPath = path.join(outputDir, relativePath);
+                const targetDir = path.dirname(targetPath);
+                await fs.promises.mkdir(targetDir, { recursive: true });
+            }
         }
 
         if (isZip) {
