@@ -1,5 +1,7 @@
 # m-info
 config.js
+input/
+output/
 
 # Logs
 logs

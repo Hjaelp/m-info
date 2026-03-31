@@ -14,10 +14,18 @@ class Tagger {
         this.config = config;
         this.terminal = terminal;
         this.metadataProvider = new Manga(config);
+        
+        this.outputDir = (this.config.USE_OUTPUT_DIR && this.config.OUTPUT_DIR) ? this.config.OUTPUT_DIR : null;
+        this.baseDir = null;
+        this.useTempFiles = this.outputDir ? false : this.config.USE_TEMPORARY_FILES;
     }
 
     async updateBooks(dir, previewMode = false) {
         this.terminal.showUpdateScreen();
+        
+        if (this.config.USE_OUTPUT_DIR) {
+            this.baseDir = dir;
+        }
 
         this.progressBars = this.createAllProgressBars();
         this.progressBars["main"].show();
@@ -151,7 +159,7 @@ class Tagger {
                     chMetadata,
                     { "Notes": "Metadata saved using m-info.js" }
                 );
-                await archive.saveComicMetadata(fullMetadata, seriesDir["archives"][chapter].path, this.config.USE_TEMPORARY_FILES);
+                await archive.saveComicMetadata(fullMetadata, seriesDir["archives"][chapter].path, this.useTempFiles, this.outputDir, this.baseDir);
                 this.progressBars["chapter"].progress();
             }
 
@@ -159,7 +167,7 @@ class Tagger {
         }
 
         if (this.config.CREATE_SERIES_JSON) {
-            await archive.saveSeriesJSON(seriesInfo["SeriesInfo"], seriesDir.path);
+            await archive.saveSeriesJSON(seriesInfo["SeriesInfo"], seriesDir.path, this.outputDir, this.baseDir);
             this.progressBars["chapter"].progress();
             logger.info(`Done saving series.json file for ${seriesInfo["ComicInfo"].Series || seriesInfo.seriesName}.`);
         }
@@ -207,7 +215,7 @@ class Tagger {
 
                 if (this.config.SAVE_SERIES_COVER && coversInfo["main"]) {
                     let coverStream = await this.metadataProvider.getCoverStream(seriesInfo.id, coversInfo["main"]);
-                    await archive.saveComicCover(coversInfo["main"], coverStream, seriesDir.path, "cover");
+                    await archive.saveComicCover(coversInfo["main"], coverStream, seriesDir.path, "cover", this.outputDir, this.baseDir);
                     this.progressBars["cover"].progress();
                     delete coversInfo["main"];
                 }
@@ -222,7 +230,7 @@ class Tagger {
 
                         let coverStream = await this.metadataProvider.getCoverStream(seriesInfo.id, volCover);
                         if (coverStream) {
-                            await archive.saveComicCover(volCover, coverStream, volChapters[volume].path, volChapters[volume].path);
+                            await archive.saveComicCover(volCover, coverStream, volChapters[volume].path, volChapters[volume].path, this.outputDir, this.baseDir);
                         }
                         this.progressBars["cover"].progress();
                     }
@@ -276,7 +284,7 @@ class Tagger {
                         
             if (!hasChapter) {
                 logger.info(`Splitting volume file: ${filename}`);
-                const createdFiles = await archive.splitVolumeIntoChapters(entPath, seriesName);
+                const createdFiles = await archive.splitVolumeIntoChapters(entPath, seriesName, this.outputDir, this.baseDir);
                 if (createdFiles && createdFiles.length > 0) {
                     logger.info(`Split volume into ${createdFiles.length} chapter files`);
                     
@@ -298,7 +306,7 @@ class Tagger {
                             { ...(chMetadata || {}), ...splitMetadata },
                             { "Notes": "Metadata saved using m-info.js" }
                         );
-                        await archive.saveComicMetadata(fullMetadata, createdFilePath, this.config.USE_TEMPORARY_FILES);
+                        await archive.saveComicMetadata(fullMetadata, createdFilePath, this.useTempFiles, this.outputDir, this.baseDir);
                         logger.verbose(`Saved metadata for ${createdFilename}`);
                     }
                 }

@@ -124,10 +124,18 @@ class Archive {
         return resp;
     }
 
-    static async saveComicMetadata(obj, filePath, useTemp) {
+    static async saveComicMetadata(obj, filePath, useTemp, outputDir, baseDir) {
         var xml = parser.objToXML(obj);
 
         const isZip = [".cbz", ".zip"].indexOf(path.extname(filePath).toLowerCase()) > -1;
+
+        let targetPath = filePath;
+        if (outputDir && baseDir) {
+            const relativePath = path.relative(baseDir, filePath);
+            targetPath = path.join(outputDir, relativePath);
+            const targetDir = path.dirname(targetPath);
+            await fs.promises.mkdir(targetDir, { recursive: true });
+        }
 
         if (isZip) {
             await this.readZip(filePath).then(async (zipData) => {
@@ -135,60 +143,73 @@ class Archive {
 
                 let dir, fn, tmpFn;
                 if (useTemp) {
-                    dir = path.dirname(filePath);
-                    fn = path.basename(filePath);
+                    dir = path.dirname(targetPath);
+                    fn = path.basename(targetPath);
                     tmpFn = fn + ".tmp";
-                    filePath = path.join(dir, tmpFn);
+                    targetPath = path.join(dir, tmpFn);
                 }
                 await zipData.generateNodeStream({ type: "nodebuffer" })
-                    .pipe(fs.createWriteStream(filePath))
+                    .pipe(fs.createWriteStream(targetPath))
                     .on("finish", async () => {
                         if (useTemp) {
                             await fs.promises.unlink(path.join(dir, fn));
                             await fs.promises.rename(path.join(dir, tmpFn), path.join(dir, fn));
                         }
-                        logger.verbose(`${filePath} updated successfully.`);
+                        logger.verbose(`${targetPath} updated successfully.`);
                     });
             }).catch((err) => {
                 logger.error(`saveComicMetadata() ERR: ${err.message}`);
             });
         }
-        else return await fs.promises.writeFile(path, xml);
+        else return await fs.promises.writeFile(targetPath, xml);
     }
 
-    static async saveSeriesJSON(obj, dir) {
-        let filename = path.join(dir, "series.json");
+    static async saveSeriesJSON(obj, dir, outputDir, baseDir) {
+        let targetDir = dir;
+        if (outputDir && baseDir) {
+            const relativePath = path.relative(baseDir, dir);
+            targetDir = path.join(outputDir, relativePath);
+            await fs.promises.mkdir(targetDir, { recursive: true });
+        }
+        let filename = path.join(targetDir, "series.json");
         return await fs.promises.writeFile(filename, JSON.stringify(obj));
     }
 
-    static async saveComicCover(imageFilename, imageStream, coverPath, destFilename) {
+    static async saveComicCover(imageFilename, imageStream, coverPath, destFilename, outputDir, baseDir) {
         destFilename = path.parse(destFilename).name;
         const coverExt = path.extname(imageFilename).toLowerCase();
 
-        const stat = await fs.promises.lstat(coverPath);
-        if (stat.isDirectory()) {
-            coverPath = path.join(coverPath, `${destFilename}${coverExt}`);
-        }
-        else {
-            coverPath = path.join(path.dirname(coverPath), `${destFilename}${coverExt}`);
+        let targetCoverPath = coverPath;
+        if (outputDir && baseDir) {
+            const relativePath = path.relative(baseDir, coverPath);
+            targetCoverPath = path.join(outputDir, relativePath);
+            await fs.promises.mkdir(path.dirname(targetCoverPath), { recursive: true });
         }
 
-        const writer = fs.createWriteStream(coverPath);
+        const stat = await fs.promises.lstat(coverPath);
+        if (stat.isDirectory()) {
+            targetCoverPath = path.join(targetCoverPath, `${destFilename}${coverExt}`);
+        }
+        else {
+            targetCoverPath = path.join(path.dirname(targetCoverPath), `${destFilename}${coverExt}`);
+        }
+
+        const writer = fs.createWriteStream(targetCoverPath);
 
         imageStream.pipe(writer);
 
         return new Promise((resolve, reject) => {
             writer.on("finish", () => {
-                logger.verbose(`${coverPath} saved successfully.`);
+                logger.verbose(`${targetCoverPath} saved successfully.`);
                 resolve();
             }).on("error", (err) => {
-                logger.error(`Error saving image ${coverPath}, Error: ${err.message}`);
+                logger.error(`Error saving image ${targetCoverPath}, Error: ${err.message}`);
                 resolve(false);
             });
         });
     }
 
-    static async splitVolumeIntoChapters(volumePath, seriesName) {
+    static async splitVolumeIntoChapters(volumePath, seriesName, outputDir, baseDir) {
         const volumeDir = path.dirname(volumePath);
         const volumeBasename = path.basename(volumePath, path.extname(volumePath));
         
@@ -247,6 +268,13 @@ class Archive {
 
         const createdFiles = [];
         
+        let targetDir = volumeDir;
+        if (outputDir && baseDir) {
+            const relativePath = path.relative(baseDir, volumeDir);
+            targetDir = path.join(outputDir, relativePath);
+            await fs.promises.mkdir(targetDir, { recursive: true });
+        }
+        
         for (const [chapter, chapterData] of Object.entries(chapters)) {
             const paddedChapter = chapter.padStart(4, '0').replace(/\./g, '.');
             const paddedVolume = chapterData.v.padStart(2, '0');
@@ -255,7 +283,7 @@ class Archive {
             const paddedChapterNum = chapter.padStart(chapterPadLen, '0');
             
             const outputName = `${seriesName} - Vol.${paddedVolume} Ch.${paddedChapterNum}.cbz`;
-            const outputPath = path.join(volumeDir, outputName);
+            const outputPath = path.join(targetDir, outputName);
 
             const zip = new JSZip();
             

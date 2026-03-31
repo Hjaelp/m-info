@@ -10,6 +10,20 @@ const config = (function () {
     }
 })();
 
+const fs = require("fs");
+
+if (!config.INPUT_DIR || !fs.existsSync(config.INPUT_DIR)) {
+    throw new Error(`INPUT_DIR "${config.INPUT_DIR}" does not exist. Please check your config.js file.`);
+}
+if (config.USE_OUTPUT_DIR) {
+    if (!config.OUTPUT_DIR) {
+        throw new Error("USE_OUTPUT_DIR is true but OUTPUT_DIR is not set. Please check your config.js file.");
+    }
+    if (!fs.existsSync(config.OUTPUT_DIR)) {
+        throw new Error(`OUTPUT_DIR "${config.OUTPUT_DIR}" does not exist. Please check your config.js file.`);
+    }
+}
+
 const Terminal = require("./helpers/terminal.js");
 const Tagger = require("./helpers/tagger.js");
 const { getDirs } = require("./helpers/archive.js");
@@ -34,10 +48,10 @@ async function mainMenu() {
     if (!resp) return;
 
     if (resp.updateMode === "all") {
-        dir = config.BASE_DIR;
+        dir = config.INPUT_DIR;
     }
     else if (resp.updateMode === "manual") {
-        dir = await terminal.showDirectoryPrompt(config.BASE_DIR, getDirs);
+        dir = await terminal.showDirectoryPrompt(config.INPUT_DIR, getDirs);
     }
 
     if (!dir) return;

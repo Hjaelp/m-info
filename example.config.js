@@ -1,5 +1,7 @@
 const config = {
-    BASE_DIR: "/mnt/comics/manga/", // Location of the books
+    INPUT_DIR: "/mnt/comics/manga/", // Base location of the books.
+    USE_OUTPUT_DIR: true,
+    OUTPUT_DIR: "/mnt/comic/output/manga/", // Output directory for processed files (creates same directory structure as source). Overrides USE_TEMPORARY_FILES.
 
     LOG_LEVEL: 1, // 0 = debug, 1 = info, 2 = warning, 3 = error
 
