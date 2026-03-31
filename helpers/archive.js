@@ -265,10 +265,20 @@ class Archive {
             if (!chapters[chapter]) {
                 chapters[chapter] = { c: chapter, v: chapterVolume, p: [] };
             }
-            chapters[chapter].p.push(fn);
+            chapters[chapter].p.push({ path: fn, filename: filename });
         }
 
         logger.verbose(`Found ${Object.keys(chapters).length} chapters: ${Object.keys(chapters).join(", ")}`);
+
+        for (const chapter in chapters) {
+            chapters[chapter].p.sort((a, b) => {
+                const aMatch = a.filename.match(/p(\d+)(?:-p?(\d+))?/i);
+                const bMatch = b.filename.match(/p(\d+)(?:-p?(\d+))?/i);
+                const aPage = aMatch ? parseInt(aMatch[1], 10) : 0;
+                const bPage = bMatch ? parseInt(bMatch[1], 10) : 0;
+                return aPage - bPage;
+            });
+        }
 
         const createdFiles = [];
         
@@ -292,10 +302,25 @@ class Archive {
             const zip = new JSZip();
             
             let i = 1;
-            for (const zipPath of chapterData.p) {
-                const ext = path.extname(zipPath);
-                const newName = `${(i++).toString().padStart(3, '0')}${ext}`;
-                const imgData = await zipData.files[zipPath].async("nodebuffer");
+            for (const page of chapterData.p) {
+                const pPath = page.path;
+                const basename = page.filename;
+                const ext = path.extname(pPath);
+                const pMatch = basename.match(/p(\d+)(?:-p?(\d+))?/i);
+                let newName;
+                if (pMatch) {
+                    const startPage = parseInt(pMatch[1]);
+                    const endPage = pMatch[2] ? parseInt(pMatch[2]) : startPage;
+                    const numPages = endPage - startPage + 1;
+                    newName = numPages > 1 
+                        ? `${i.toString().padStart(3, '0')}-${(i + numPages - 1).toString().padStart(3, '0')}${ext}`
+                        : `${i.toString().padStart(3, '0')}${ext}`;
+                    i += numPages;
+                } else {
+                    newName = `${i.toString().padStart(3, '0')}${ext}`;
+                    i++;
+                }
+                const imgData = await zipData.files[pPath].async("nodebuffer");
                 zip.file(newName, imgData);
             }
 
